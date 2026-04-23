@@ -1,0 +1,226 @@
+import { Request, Response } from "express";
+import * as teacherService from "./teacher.service";
+
+/* =========================
+   CREATE TEACHER
+========================= */
+export const createTeacher = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+
+    const result = await teacherService.createTeacher(schoolId, req.body);
+
+    return res.status(201).json({
+      success: true,
+      data: result,
+      message: "Teacher created successfully",
+    });
+  } catch (err: any) {
+    console.error("Create teacher error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+/* =========================
+   GET ALL TEACHERS
+========================= */
+export const getTeachers = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+
+    const data = await teacherService.getTeachers(schoolId);
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (err: any) {
+    console.error("Get teachers error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+/* =========================
+   SET PASSWORD
+========================= */
+export const setTeachersPassword = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { password } = req.body;
+
+    await teacherService.setTeachersPassword(schoolId, password);
+
+    return res.json({
+      success: true,
+      message: "Password set for all teachers",
+    });
+  } catch (err: any) {
+    console.error("Set password error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+/* =========================
+   CURRENT CLASS API
+========================= */
+
+export const getCurrentClassController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const teacherId = req?.user?.teacherId;
+
+    if (!teacherId) {
+      return res.status(403).json({
+        success: false,
+        message: "Teacher not authorized",
+      });
+    }
+
+    const data = await teacherService.getCurrentClassService(teacherId);
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Error in current class API:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
+/* =========================
+   GET TIMETABLE BY DATE
+========================= */
+export const getTeacherTimetableByDateController = async (
+  req: any,
+  res: Response,
+) => {
+  try {
+    const teacherId = req.user.teacherId;
+    const { date } = req.query;
+
+    if (!teacherId) {
+      return res.status(403).json({
+        success: false,
+        message: "Teacher not authorized",
+      });
+    }
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: "Date is required",
+      });
+    }
+
+    const data = await teacherService.getTeacherTimetableByDate(
+      teacherId,
+      date,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("Error fetching timetable:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
+  }
+};
+
+export const getTeachersByClass = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { classId } = req.query;
+
+    const teachers = await teacherService.getTeachersByClassService(
+      schoolId,
+      classId,
+    );
+
+    return res.status(200).json({
+      success: true,
+      teachers,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      message: err.message || "Failed to fetch teachers",
+    });
+  }
+};
+
+/* =========================
+   UPDATE TEACHER
+========================= */
+export const updateTeacher = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { id } = req.params;
+
+    const updated = await teacherService.updateTeacherService(
+      schoolId,
+      id,
+      req.body,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: updated,
+      message: "Teacher updated successfully",
+    });
+  } catch (err: any) {
+    console.error("Update teacher error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+/* =========================
+   DELETE TEACHER
+========================= */
+export const deleteTeacher = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { id } = req.params;
+    console.log(id, "deleteApi");
+
+    await teacherService.deleteTeacherService(schoolId, id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Teacher deleted successfully",
+    });
+  } catch (err: any) {
+    console.error("Delete teacher error:", err);
+
+    return res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.message || "Internal Server Error",
+    });
+  }
+};

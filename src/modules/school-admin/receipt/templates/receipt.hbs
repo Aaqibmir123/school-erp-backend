@@ -1,0 +1,182 @@
+<html>
+  <head>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 30px;
+        font-size: 14px;
+        color: #000;
+      }
+
+      .header {
+        text-align: center;
+      }
+
+      .header h2 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .header p {
+        margin: 2px 0;
+        font-size: 13px;
+      }
+
+      .title {
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        margin: 20px 0;
+        text-decoration: underline;
+      }
+
+      .info {
+        margin-bottom: 15px;
+        line-height: 1.6;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .col {
+        width: 48%;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+
+      th {
+        background: #f5f5f5;
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid #000;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: center;
+        font-size: 13px;
+      }
+
+      .summary {
+        margin-top: 20px;
+        width: 300px;
+        margin-left: auto;
+        font-size: 14px;
+      }
+
+      .summary p {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+      }
+
+      .summary .total {
+        font-weight: bold;
+      }
+
+      .footer {
+        margin-top: 60px;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .signature {
+        text-align: center;
+        width: 40%;
+      }
+
+      .line {
+        margin-top: 40px;
+        border-top: 1px solid #000;
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div class="header">
+      <h2>{{schoolName}}</h2>
+      <p>{{schoolAddress}}</p>
+    </div>
+
+    <!-- TITLE -->
+    <div class="title">FEE RECEIPT</div>
+
+    <!-- STUDENT INFO -->
+    <div class="info">
+
+      <div class="row">
+        <div class="col">
+          <p><b>Receipt No:</b> {{receiptNumber}}</p>
+          <p><b>Student Name:</b> {{studentName}}</p>
+          <p><b>Father Name:</b> {{fatherName}}</p>
+        </div>
+
+        <div class="col">
+          <p><b>Date:</b> {{date}}</p>
+          <p><b>Class:</b> {{className}}</p>
+          <p><b>Section:</b> {{sectionName}}</p>
+        </div>
+      </div>
+
+      <p><b>Address:</b> {{address}}</p>
+
+    </div>
+
+    <!-- TABLE -->
+    <table>
+      <tr>
+        <th>Fee Type</th>
+        <th>Month</th>
+        <th>Total</th>
+        <th>Paid</th>
+        <th>Remaining</th>
+      </tr>
+
+      {{#each fees}}
+        <tr>
+          <td>{{this.feeType}}</td>
+          <td>{{this.month}}</td>
+          <td>₹ {{this.totalAmount}}</td>
+          <td>₹ {{this.paidAmount}}</td>
+          <td>₹ {{this.totalAmount}}</td>
+        </tr>
+      {{/each}}
+    </table>
+
+    <!-- SUMMARY -->
+    <div class="summary">
+      <p><span>Total Amount:</span> <span>₹ {{totalAmount}}</span></p>
+      <p><span>Paid Amount:</span> <span>₹ {{paidAmount}}</span></p>
+      <p class="total">
+        <span>Remaining:</span>
+        <span>₹ {{remainingAmount}}</span>
+      </p>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="signature">
+        <div class="line"></div>
+        <p>Authorized Signature</p>
+      </div>
+
+      <div class="signature">
+        <div class="line"></div>
+        <p>School Seal</p>
+      </div>
+    </div>
+
+  </body>
+</html>

@@ -1,0 +1,15 @@
+export const CLASS_ORDER: Record<string, number> = {
+  Nursery: 1,
+  LKG: 2,
+  UKG: 3,
+  "1st": 4,
+  "2nd": 5,
+  "3rd": 6,
+  "4th": 7,
+  "5th": 8,
+  "6th": 9,
+  "7th": 10,
+  "8th": 11,
+  "9th": 12,
+  "10th": 13,
+}
