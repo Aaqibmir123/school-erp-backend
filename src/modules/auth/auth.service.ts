@@ -1,18 +1,17 @@
 import bcrypt from "bcryptjs";
 
-import {
-  ApplySchoolDTO,
-  LoginDTO,
-} from "../../../../shared-types/auth.types";
-import { generateToken, verifyToken } from "../../utils/jwt";
+import { ApplySchoolDTO, LoginDTO } from "../../../../shared-types/auth.types";
 import { ApiError } from "../../utils/apiError";
+import { generateToken, verifyToken } from "../../utils/jwt";
 import { StudentModel } from "../school-admin/student/student.model";
 import { TeacherModel } from "../school-admin/teacher/teacher.model";
 import { School } from "../school/school.model";
 import { User, UserRole } from "../user/user.model";
-import admin from "./firebase";
+import { SUPER_ADMIN_PASSWORD, SUPER_ADMIN_PHONE } from "../../config/superAdmin";
+import { getFirebaseAdmin } from "./firebase";
 import { OtpModel } from "./otp.model";
 
+/* ================= TYPES ================= */
 type AuthUserResponse = {
   _id: string;
   email?: string;
@@ -26,7 +25,6 @@ type AuthUserResponse = {
 /* ================= NORMALIZE PHONE ================= */
 const normalizePhone = (phone: string) => {
   if (!phone) return "";
-
   return phone.toString().replace(/\D/g, "").slice(-10);
 };
 
@@ -50,9 +48,7 @@ export const checkUser = async (phone: string) => {
     throw new ApiError(404, "User not found");
   }
 
-  return {
-    role: user.role,
-  };
+  return { role: user.role };
 };
 
 /* ================= SEND OTP ================= */
@@ -80,17 +76,10 @@ export const verifyOtp = async (phone: string, otp: string) => {
     createdAt: -1,
   });
 
-  if (!record) {
-    throw new ApiError(404, "OTP not found");
-  }
-
-  if (record.expiresAt < new Date()) {
-    throw new ApiError(400, "OTP expired");
-  }
-
-  if (String(record.otp) !== String(otp)) {
+  if (!record) throw new ApiError(404, "OTP not found");
+  if (record.expiresAt < new Date()) throw new ApiError(400, "OTP expired");
+  if (String(record.otp) !== String(otp))
     throw new ApiError(400, "Invalid OTP");
-  }
 
   await OtpModel.deleteMany({ phone: normalizedPhone });
 
@@ -113,23 +102,45 @@ export const login = async (data: LoginDTO) => {
     ? identifier.toLowerCase()
     : identifier;
 
+  /* 🔥 SUPER ADMIN LOGIN FLOW */
+  if (normalizedIdentifier === SUPER_ADMIN_PHONE) {
+    let superAdmin = await User.findOne({ phone: SUPER_ADMIN_PHONE });
+
+    // 👉 Create if not exists
+    if (!superAdmin) {
+      const hashedPassword = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
+
+      superAdmin = await User.create({
+        phone: SUPER_ADMIN_PHONE,
+        password: hashedPassword,
+        role: UserRole.SUPER_ADMIN, // ✅ use enum
+        isFirstLogin: false,
+      });
+    }
+
+    const match = await bcrypt.compare(
+      data.password,
+      superAdmin.password || "",
+    );
+
+    if (!match) {
+      throw new ApiError(401, "Invalid password");
+    }
+
+    return buildAuthResponse(superAdmin);
+  }
+
+  /* 🔹 NORMAL USERS */
   const user = await User.findOne({
     $or: [{ email: normalizedIdentifier }, { phone: normalizedIdentifier }],
   });
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
-
-  if (!user.password) {
-    throw new ApiError(400, "Password not set");
-  }
+  if (!user) throw new ApiError(404, "User not found");
+  if (!user.password) throw new ApiError(400, "Password not set");
 
   const match = await bcrypt.compare(data.password, user.password);
 
-  if (!match) {
-    throw new ApiError(401, "Invalid password");
-  }
+  if (!match) throw new ApiError(401, "Invalid password");
 
   return buildAuthResponse(user);
 };
@@ -137,13 +148,11 @@ export const login = async (data: LoginDTO) => {
 /* ================= FIREBASE LOGIN ================= */
 export const firebaseLoginService = async (idToken: string) => {
   try {
+    const admin = getFirebaseAdmin();
     const decoded = await admin.auth().verifyIdToken(idToken);
 
     const rawPhone = decoded.phone_number;
-
-    if (!rawPhone) {
-      throw new ApiError(400, "Phone not found in token");
-    }
+    if (!rawPhone) throw new ApiError(400, "Phone not found in token");
 
     const phone = normalizePhone(rawPhone);
 
@@ -172,9 +181,7 @@ const buildAuthResponse = async (user: any) => {
       "_id",
     );
 
-    if (teacher) {
-      teacherId = teacher._id.toString();
-    }
+    if (teacher) teacherId = teacher._id.toString();
   }
 
   if (user.role === UserRole.PARENT) {
@@ -206,6 +213,7 @@ const buildAuthResponse = async (user: any) => {
 /* ================= SET PASSWORD ================= */
 export const setPassword = async (token: string, password: string) => {
   const decoded = verifyToken(token) as { id: string };
+
   const hashed = await bcrypt.hash(password, 10);
 
   const user = await User.findByIdAndUpdate(
@@ -214,9 +222,7 @@ export const setPassword = async (token: string, password: string) => {
     { new: true },
   );
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+  if (!user) throw new ApiError(404, "User not found");
 
   return sanitizeAuthUser(user);
 };

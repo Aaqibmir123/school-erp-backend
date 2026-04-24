@@ -45,26 +45,28 @@ import teacherResultRoutes from "./modules/result/result.routes";
 
 const app = express();
 
+const trustedPreviewOriginPatterns = [
+  /^https:\/\/aaqib-school-erp-admin(?:-[a-z0-9-]+)?\.vercel\.app$/i,
+  /^https:\/\/aaqib-school-erp-admi(?:-[a-z0-9-]+)?\.vercel\.app$/i,
+];
+
+const isAllowedOrigin = (origin: string) =>
+  env.clientOrigins.includes(origin) ||
+  trustedPreviewOriginPatterns.some((pattern) => pattern.test(origin));
+
 /* ================= MIDDLEWARE ================= */
 
 app.set("trust proxy", 1);
 app.use(
   cors({
-    origin: "*", // ✅ DEV MODE (production me restrict karna)
-    credentials: true,
-  }),
-);
-app.use(
-  cors({
     credentials: true,
     origin: (origin, callback) => {
-      // WHY: Native mobile requests often have no Origin header, so we allow
-      // origin-less requests while still enforcing the configured web origins.
+      // Native mobile requests often have no Origin header.
       if (!origin) {
         return callback(null, true);
       }
 
-      if (env.clientOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
 
@@ -77,8 +79,6 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use((_, res, next) => {
-  // WHY: These headers add baseline hardening without pulling in another
-  // dependency while we keep the middleware stack intentionally lightweight.
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("X-Content-Type-Options", "nosniff");
   next();

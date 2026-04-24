@@ -4,7 +4,11 @@ import { z } from "zod";
 dotenv.config();
 
 const envSchema = z.object({
-  CLIENT_URLS: z.string().default("http://localhost:3000,http://localhost:8081"),
+  CLIENT_URLS: z
+    .string()
+    .default(
+      "http://localhost:3000,http://localhost:8081,https://aaqib-school-erp-admin.vercel.app",
+    ),
   EMAIL_PASS: z.string().optional().default(""),
   EMAIL_USER: z.string().optional().default(""),
   FIREBASE_CLIENT_EMAIL: z.string().optional().default(""),
@@ -12,6 +16,8 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: z.string().optional().default(""),
   FIREBASE_PRIVATE_KEY_ID: z.string().optional().default(""),
   FIREBASE_PROJECT_ID: z.string().optional().default(""),
+  SUPER_ADMIN_PASSWORD: z.string().min(1, "SUPER_ADMIN_PASSWORD is required"),
+  SUPER_ADMIN_PHONE: z.string().min(1, "SUPER_ADMIN_PHONE is required"),
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
   MONGO_URI: z.string().min(1, "MONGO_URI is required"),
   NODE_ENV: z
