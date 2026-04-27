@@ -6,6 +6,7 @@ import { HomeworkModel } from "../homework/homework.model";
 import { ResultModel } from "../result/result.model";
 import FeeModel from "../school-admin/Fee/Fee.model";
 import { StudentModel } from "../school-admin/student/student.model";
+import { School } from "../school/school.model";
 import TimetableModel from "../school-admin/timetable/timetable.model";
 
 /* ================= HELPERS ================= */
@@ -56,6 +57,15 @@ const getCurrentDay = () =>
   });
 
 const getTodayDate = () => new Date().toISOString().split("T")[0];
+
+const getPhoneVariants = (phone: string) => {
+  const digits = phone.toString().replace(/\D/g, "");
+  const normalized = digits.slice(-10);
+
+  return Array.from(
+    new Set([digits, normalized, `0${normalized}`].filter(Boolean)),
+  );
+};
 
 /* ================= DASHBOARD ================= */
 
@@ -200,7 +210,7 @@ export const getStudentTodayTimetable = async (user: any) => {
 
   if (role === "PARENT") {
     student = await StudentModel.findOne({
-      parentPhone: phone,
+      parentPhone: { $in: getPhoneVariants(phone) },
       schoolId,
     })
       .populate("classId", "name")
@@ -255,7 +265,7 @@ export const getStudentWeeklyTimetable = async (user: any) => {
 
   if (role === "PARENT") {
     student = await StudentModel.findOne({
-      parentPhone: phone,
+      parentPhone: { $in: getPhoneVariants(phone) },
       schoolId,
     })
       .populate("classId", "name")
@@ -305,6 +315,8 @@ export const getStudentSubjectMarks = async (
 ) => {
   if (!studentId) throw new Error("StudentId required");
 
+  const school = await School.findById(schoolId).select("schoolName").lean();
+
   const results = await ResultModel.find({
     schoolId,
     studentId: toObjectId(studentId),
@@ -347,6 +359,7 @@ export const getStudentSubjectMarks = async (
     percentage: subject.total
       ? Math.round((subject.obtained / subject.total) * 100)
       : 0,
+    schoolName: school?.schoolName || "School",
     subject: subject.subject,
     total: subject.total,
   }));

@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  getAttendanceHistory,
   markAttendance,
   getStudentTodayAttendance,
   getStudentSummary,
@@ -18,6 +19,7 @@ router.use(authMiddleware);
 ========================= */
 router.post("/", markAttendance);
 router.get("/class", getClassAttendance);
+router.get("/history", getAttendanceHistory);
 
 /* =========================
    👨‍👩‍👧 STUDENT ROUTES

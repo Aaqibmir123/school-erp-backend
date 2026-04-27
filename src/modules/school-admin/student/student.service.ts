@@ -3,6 +3,9 @@ import { StudentModel } from "./student.model";
 
 import { generateStudentTemplate } from "./student.template";
 
+const normalizePhone = (phone: string) =>
+  phone.toString().replace(/\D/g, "").slice(-10);
+
 export const downloadStudentTemplateService = async () => {
   const buffer = generateStudentTemplate();
 
@@ -13,13 +16,17 @@ export const createStudentService = async (
   academicYearId: string,
   data: any,
 ) => {
-  let parentUser = await User.findOne({ phone: data.parentPhone });
+  const parentPhone = normalizePhone(data.parentPhone);
+
+  let parentUser = await User.findOne({
+    phone: { $in: [parentPhone, `0${parentPhone}`] },
+  });
 
   if (!parentUser) {
     parentUser = await User.create({
       name: data.fatherName,
-      email: `${data.parentPhone}@parent.local`,
-      phone: data.parentPhone,
+      email: `${parentPhone}@parent.local`,
+      phone: parentPhone,
       role: UserRole.PARENT,
       schoolId,
     });
@@ -27,6 +34,7 @@ export const createStudentService = async (
 
   const student = await StudentModel.create({
     ...data,
+    parentPhone,
     schoolId,
     academicYearId,
     parentUserId: parentUser._id,
@@ -38,14 +46,39 @@ export const createStudentService = async (
 export const getStudentsService = async (schoolId: string, query: any) => {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
+  const search = typeof query.search === "string" ? query.search.trim() : "";
+  const classId = typeof query.classId === "string" ? query.classId.trim() : "";
+  const sectionId =
+    typeof query.sectionId === "string" ? query.sectionId.trim() : "";
 
   const skip = (page - 1) * limit;
 
   const filter: any = { schoolId };
 
+  if (classId) {
+    filter.classId = classId;
+  }
+
+  if (sectionId) {
+    filter.sectionId = sectionId;
+  }
+
+  if (search) {
+    const numericSearch = Number(search);
+    filter.$or = [
+      { firstName: { $regex: search, $options: "i" } },
+      { lastName: { $regex: search, $options: "i" } },
+    ];
+
+    if (!Number.isNaN(numericSearch) && search !== "") {
+      filter.$or.push({ rollNumber: numericSearch });
+    }
+  }
+
   const students = await StudentModel.find(filter)
     .populate("classId", "name")
     .populate("sectionId", "name")
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .lean();
@@ -174,4 +207,23 @@ export const getAllStudentsByClassService = async (
 
     address: s.address || "",
   }));
+};
+
+export const getStudentByIdService = async (
+  schoolId: string,
+  studentId: string,
+) => {
+  const student = await StudentModel.findOne({
+    _id: studentId,
+    schoolId,
+  })
+    .populate("classId", "name")
+    .populate("sectionId", "name")
+    .lean();
+
+  if (!student) {
+    throw new Error("Student not found");
+  }
+
+  return student;
 };

@@ -1,6 +1,7 @@
 import { Response } from "express";
 import {
   getClassAttendanceService,
+  getAttendanceHistoryService,
   getStudentAttendanceService,
   getStudentSummaryService,
   getStudentTodayAttendanceService,
@@ -59,6 +60,42 @@ export const getClassAttendance = async (req: any, res: Response) => {
     });
   } catch (err: any) {
     return res.status(500).json({
+      message: err.message,
+    });
+  }
+};
+
+/* =========================
+   TEACHER: ATTENDANCE HISTORY
+========================= */
+export const getAttendanceHistory = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+
+    const result = await getAttendanceHistoryService({
+      schoolId,
+      classId: req.query.classId as string | undefined,
+      sectionId: req.query.sectionId as string | undefined,
+      subjectId: req.query.subjectId as string | undefined,
+      studentId: req.query.studentId as string | undefined,
+      mode: req.query.mode as string | undefined,
+      from: req.query.from as string | undefined,
+      to: req.query.to as string | undefined,
+      search: req.query.search as string | undefined,
+      page,
+      limit,
+    });
+
+    return res.json({
+      success: true,
+      data: result.data,
+      meta: result.meta,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      success: false,
       message: err.message,
     });
   }

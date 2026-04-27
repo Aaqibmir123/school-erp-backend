@@ -6,6 +6,9 @@ import { User } from "../../user/user.model";
 import { parseStudentExcel } from "./student.bulk.parser";
 import { validateStudentRow } from "./student.bulk.validator";
 
+const normalizePhone = (phone: string) =>
+  phone.toString().replace(/\D/g, "").slice(-10);
+
 /* ================= IMPORT SERVICE ================= */
 
 export const importStudentBulkService = async (students: any[], user: any) => {
@@ -49,11 +52,15 @@ export const importStudentBulkService = async (students: any[], user: any) => {
   /* ===== PARENT BATCHING ===== */
 
   const phones = [
-    ...new Set(students.map((s) => s.parentPhone).filter((p) => p)),
+    ...new Set(
+      students
+        .map((s) => normalizePhone(s.parentPhone || ""))
+        .filter((p) => p),
+    ),
   ];
 
   const existingParents = await User.find({
-    phone: { $in: phones },
+    phone: { $in: phones.flatMap((phone) => [phone, `0${phone}`]) },
   });
 
   const parentMap: Record<string, any> = {};
@@ -136,8 +143,8 @@ export const importStudentBulkService = async (students: any[], user: any) => {
 
     const parentUser = parentMap[row.parentPhone];
 
-    studentsToInsert.push({
-      schoolId,
+      studentsToInsert.push({
+        schoolId,
 
       firstName: row.firstName,
       lastName: row.lastName,
@@ -150,7 +157,7 @@ export const importStudentBulkService = async (students: any[], user: any) => {
       rollNumber: row.rollNumber,
 
       fatherName: row.fatherName,
-      parentPhone: row.parentPhone,
+      parentPhone: normalizePhone(row.parentPhone),
 
       parentUserId: parentUser?._id || null,
     });

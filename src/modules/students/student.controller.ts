@@ -12,6 +12,15 @@ import {
   getStudentWeeklyTimetable,
 } from "./student.service";
 
+const getPhoneVariants = (phone: string) => {
+  const digits = phone.toString().replace(/\D/g, "");
+  const normalized = digits.slice(-10);
+
+  return Array.from(
+    new Set([digits, normalized, `0${normalized}`].filter(Boolean)),
+  );
+};
+
 /* ================= DASHBOARD ================= */
 
 export const getStudentDashboard = async (
@@ -115,7 +124,7 @@ export const getFeesByStudent = async (
     // WHY: Parents can have multiple student records over time, so we only
     // resolve the student that belongs to the authenticated school context.
     const student = await StudentModel.findOne({
-      parentPhone: req.user.phone,
+      parentPhone: { $in: getPhoneVariants(req.user.phone) },
       schoolId: req.user.schoolId,
     }).select("_id");
 

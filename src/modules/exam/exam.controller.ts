@@ -6,10 +6,11 @@ import {
   getMyExamsService,
   updateExamService,
 } from "./exam.service";
+import { validateCreateExam, validateUpdateExam } from "./exam.validation";
 
 export const createExam = async (req: Request, res: Response) => {
   try {
-    // validateCreateExams(req.body);
+    validateCreateExam(req.body, req.user?.role);
 
     const exam = await createExamService(req.body, req.user);
 
@@ -49,6 +50,7 @@ export const getMyExams = async (req: any, res: Response) => {
 
 export const updateExam = async (req: Request, res: Response) => {
   try {
+    validateUpdateExam(req.body, req.user?.role);
     const exam = await updateExamService(req.params.id, req.body);
     return successResponse(res, exam, "Exam updated");
   } catch (err: any) {

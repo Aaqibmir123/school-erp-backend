@@ -2,6 +2,7 @@ import { ClassModel } from "../classes/class.model";
 import FeeModel from "../Fee/Fee.model";
 import { SectionModel } from "../sections/sections.model";
 import { StudentModel } from "../student/student.model";
+import { School } from "../../school/school.model";
 import { generateReceiptPDF } from "./pdf.service";
 import ReceiptModel from "./receipt.model";
 
@@ -20,6 +21,7 @@ export const generateReceiptService = async ({
   /* ================= CHECK EXISTING ================= */
 
   const existingReceipt = await ReceiptModel.findOne({
+    schoolId,
     feeIds: { $in: feeIds },
   });
 
@@ -33,7 +35,7 @@ export const generateReceiptService = async ({
     _id: { $in: feeIds },
     isDeleted: { $ne: true },
   })
-    .select("studentId totalAmount paidAmount feeType month")
+    .select("studentId schoolId totalAmount paidAmount feeType month")
     .lean();
 
   if (!fees.length) {
@@ -46,6 +48,10 @@ export const generateReceiptService = async ({
     if (f.studentId.toString() !== studentId) {
       throw new Error("Fee student mismatch");
     }
+
+    if (f.schoolId?.toString?.() !== String(schoolId)) {
+      throw new Error("Fee school mismatch");
+    }
   }
 
   /* ================= FETCH STUDENT ================= */
@@ -54,6 +60,14 @@ export const generateReceiptService = async ({
 
   if (!student) {
     throw new Error("Student not found");
+  }
+
+  const school = await School.findById(schoolId)
+    .select("schoolName address")
+    .lean();
+
+  if (!school) {
+    throw new Error("School not found");
   }
 
   const studentName = `${student.firstName} ${student.lastName}`;
@@ -101,8 +115,8 @@ export const generateReceiptService = async ({
   const pdfData = {
     receiptNumber,
 
-    schoolName: "My School",
-    schoolAddress: "Kupwara Kashmir",
+    schoolName: school.schoolName || "School",
+    schoolAddress: school.address || "N/A",
 
     studentName,
     fatherName: student.fatherName || "N/A",

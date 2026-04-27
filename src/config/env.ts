@@ -16,6 +16,13 @@ const envSchema = z.object({
   FIREBASE_PRIVATE_KEY: z.string().optional().default(""),
   FIREBASE_PRIVATE_KEY_ID: z.string().optional().default(""),
   FIREBASE_PROJECT_ID: z.string().optional().default(""),
+  REFRESH_JWT_SECRET: z.string().optional().default(""),
+  WEB_APP_URL: z
+    .string()
+    .url()
+    .optional()
+    .or(z.literal(""))
+    .default("https://aaqib-school-erp-admin.vercel.app"),
   SUPER_ADMIN_PASSWORD: z.string().min(1, "SUPER_ADMIN_PASSWORD is required"),
   SUPER_ADMIN_PHONE: z.string().min(1, "SUPER_ADMIN_PHONE is required"),
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),

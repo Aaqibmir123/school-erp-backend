@@ -16,7 +16,6 @@ router.post(
   teacherController.createTeacher,
 );
 
-// 🔥 GET ALL TEACHERS
 router.get(
   "/teachers",
   authMiddleware,
@@ -24,6 +23,21 @@ router.get(
   teacherController.getTeachers,
 );
 router.put("/teacher/:id", authMiddleware, teacherController.updateTeacher);
+
+router.get(
+  "/teacher/me",
+  authMiddleware,
+  roleMiddleware("TEACHER"),
+  teacherController.getTeacherProfile,
+);
+
+router.put(
+  "/teacher/me",
+  authMiddleware,
+  roleMiddleware("TEACHER"),
+  uploadFile("teachers").single("profileImage"),
+  teacherController.updateTeacherProfile,
+);
 
 router.delete("/teacher/:id", authMiddleware, teacherController.deleteTeacher);
 

@@ -11,6 +11,26 @@ import teacherAssignmentModel from "./teacherAssignment.model";
    GET TODAY
 ========================= */
 
+const DAY_VARIANTS: Record<string, string[]> = {
+  Sunday: ["Sun"],
+  Monday: ["Mon"],
+  Tuesday: ["Tue"],
+  Wednesday: ["Wed"],
+  Thursday: ["Thu"],
+  Friday: ["Fri"],
+  Saturday: ["Sat"],
+};
+
+const getDayVariants = (day: string) => {
+  const shortDay = Object.entries(DAY_VARIANTS).find(([longName]) =>
+    [longName, ...(DAY_VARIANTS[longName] || [])].includes(day),
+  )?.[0];
+
+  if (!shortDay) return [day];
+
+  return [shortDay, ...(DAY_VARIANTS[shortDay] || [])];
+};
+
 /* =========================
    FORMAT CLASS
 ========================= */
@@ -18,6 +38,8 @@ const formatClass = (item: any) => {
   return {
     classId: item.classId?._id,
     sectionId: item.sectionId,
+    subjectId: item.subjectId?._id,
+    periodId: item.periodId?._id,
 
     className: item.classId?.name,
     subjectName: item.subjectId?.name,
@@ -25,6 +47,42 @@ const formatClass = (item: any) => {
     startTime: item.periodId?.startTime,
     endTime: item.periodId?.endTime,
   };
+};
+
+const sanitizeProfileUpdate = (data: Record<string, any>) => {
+  // WHY: Teacher profile updates often come from partially filled forms.
+  // We keep existing DB values when a field is left blank so profile edits
+  // and image uploads do not fail on required schema fields like email.
+  const allowedFields = [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "gender",
+    "qualification",
+    "address",
+    "profileImage",
+  ];
+
+  return allowedFields.reduce((acc: Record<string, any>, field) => {
+    const value = data[field];
+
+    if (value === undefined || value === null) {
+      return acc;
+    }
+
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed && field !== "profileImage") {
+        return acc;
+      }
+      acc[field] = trimmed;
+      return acc;
+    }
+
+    acc[field] = value;
+    return acc;
+  }, {});
 };
 
 /* =========================
@@ -44,13 +102,14 @@ export const getCurrentClassService = async (teacherId: string) => {
   const today = istTime.toLocaleString("en-US", {
     weekday: "long",
   });
+  const todayVariants = getDayVariants(today);
 
   const teacherObjectId = new mongoose.Types.ObjectId(teacherId);
 
   /* ================= GET TODAY CLASSES ================= */
   const todayClasses = await TimetableModel.find({
     teacherId: teacherObjectId,
-    day: today,
+    day: { $in: todayVariants },
   })
     .populate("classId", "name")
     .populate("subjectId", "name")
@@ -58,20 +117,34 @@ export const getCurrentClassService = async (teacherId: string) => {
     .sort({ startMinutes: 1 })
     .lean();
 
-  let currentClassDoc: any = null;
+  let currentClassIndex = -1;
+  let nextClassIndex = -1;
 
-  for (const cls of todayClasses) {
+  for (let index = 0; index < todayClasses.length; index += 1) {
+    const cls = todayClasses[index];
+
+    if (
+      nextClassIndex === -1 &&
+      cls.startMinutes > currentMinutes &&
+      cls.startMinutes - currentMinutes <= 10
+    ) {
+      nextClassIndex = index;
+    }
+
     if (
       cls.startMinutes <= currentMinutes &&
       cls.endMinutes >= currentMinutes
     ) {
-      currentClassDoc = cls;
+      currentClassIndex = index;
       break;
     }
   }
 
   /* ================= STUDENTS ================= */
   let students: any[] = [];
+
+  const currentClassDoc =
+    currentClassIndex >= 0 ? todayClasses[currentClassIndex] : null;
 
   if (currentClassDoc) {
     const classId = currentClassDoc.classId?._id;
@@ -107,24 +180,27 @@ export const getCurrentClassService = async (teacherId: string) => {
       .lean();
   }
 
-  /* ================= FORMAT ================= */
-  const formatClass = (cls: any) => ({
-    classId: cls.classId?._id,
-    sectionId: cls.sectionId || null,
-    periodId: cls.periodId?._id,
-    subjectId: cls.subjectId?._id,
-    className: cls.classId?.name,
-    subjectName: cls.subjectId?.name,
-    startTime: cls.periodId?.startTime,
-    endTime: cls.periodId?.endTime,
-  });
+  const currentClass = currentClassDoc ? formatClass(currentClassDoc) : null;
+  const recentClasses = todayClasses
+    .slice(0, currentClassIndex > 0 ? currentClassIndex : 0)
+    .reverse()
+    .slice(0, 3)
+    .map(formatClass);
+
+  const upcomingClasses =
+    nextClassIndex >= 0
+      ? [todayClasses[nextClassIndex], ...todayClasses.slice(nextClassIndex + 1)]
+          .filter((item: any) => item.startMinutes - currentMinutes <= 10)
+          .map(formatClass)
+          .slice(0, 4)
+      : [];
 
   /* ================= FINAL ================= */
   return {
-    currentClass: currentClassDoc ? formatClass(currentClassDoc) : null,
+    currentClass,
     students,
-    recentClasses: [],
-    upcomingClasses: [],
+    recentClasses,
+    upcomingClasses,
   };
 };
 
@@ -136,9 +212,10 @@ export const getTeacherTimetableByDate = async (
   date: string,
 ) => {
   const day = getDayFromDate(date);
+  const dayVariants = getDayVariants(day);
   const timetable = await TimetableModel.find({
     teacherId,
-    day,
+    day: { $in: dayVariants },
   })
     .sort({ startMinutes: 1 })
     .populate("periodId")
@@ -199,7 +276,7 @@ export const setTeachersPassword = async (
 ========================= */
 export const createTeacher = async (
   schoolId: string,
-  data: CreateTeacherDTO,
+  data: CreateTeacherDTO & { profileImage?: string },
 ) => {
   const user = await User.create({
     name: `${data.firstName} ${data.lastName}`,
@@ -239,6 +316,26 @@ export const getTeachers = async (
 
 export const getTeacherById = async (id: string) => {
   return TeacherModel.findById(id).lean();
+};
+
+export const getTeacherByUserId = async (userId: string) => {
+  if (!userId) return null;
+
+  return TeacherModel.findOne({ userId }).lean();
+};
+
+export const getTeacherProfileByTeacherId = async (teacherId: string) => {
+  const teacher = await TeacherModel.findById(teacherId)
+    .select(
+      "firstName lastName email phone gender dateOfBirth employeeId qualification experience joiningDate address profileImage schoolId userId status",
+    )
+    .lean();
+
+  if (!teacher) {
+    throw new Error("Teacher not found");
+  }
+
+  return teacher;
 };
 
 export const updateTeacher = async (
@@ -329,6 +426,49 @@ export const updateTeacherService = async (
   }
 
   return teacher;
+};
+
+export const updateTeacherProfileService = async (
+  teacherId: string,
+  data: any,
+) => {
+  const teacher = await TeacherModel.findById(teacherId);
+
+  if (!teacher) {
+    const err: any = new Error("Teacher not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const updateData = sanitizeProfileUpdate(data);
+
+  // WHY: Some existing teacher records were created before profile fields were
+  // fully populated. Using a partial atomic update avoids save-time validation
+  // failures on unchanged required fields while still updating only what the
+  // teacher explicitly edited.
+  const updatedTeacher = await TeacherModel.findByIdAndUpdate(
+    teacherId,
+    { $set: updateData },
+    { new: true, runValidators: false },
+  ).lean();
+
+  if (teacher.userId) {
+    const userUpdate: Record<string, any> = {
+      name: `${
+        updatedTeacher?.firstName || teacher.firstName || ""
+      } ${updatedTeacher?.lastName || teacher.lastName || ""}`.trim(),
+    };
+
+    const updatedEmail = updatedTeacher?.email || teacher.email;
+    const updatedPhone = updatedTeacher?.phone || teacher.phone;
+
+    if (updatedEmail) userUpdate.email = updatedEmail;
+    if (updatedPhone) userUpdate.phone = updatedPhone;
+
+    await User.findByIdAndUpdate(teacher.userId, userUpdate);
+  }
+
+  return updatedTeacher || teacher.toObject();
 };
 
 /* =========================

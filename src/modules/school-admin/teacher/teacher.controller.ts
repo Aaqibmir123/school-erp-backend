@@ -1,6 +1,17 @@
 import { Request, Response } from "express";
 import * as teacherService from "./teacher.service";
 
+const normalizeUploadPath = (filePath?: string) => {
+  if (!filePath) return undefined;
+
+  const uploadsIndex = filePath.lastIndexOf("uploads");
+  if (uploadsIndex === -1) {
+    return filePath.replace(/\\/g, "/");
+  }
+
+  return `/${filePath.slice(uploadsIndex).replace(/\\/g, "/")}`;
+};
+
 /* =========================
    CREATE TEACHER
 ========================= */
@@ -8,7 +19,15 @@ export const createTeacher = async (req: any, res: Response) => {
   try {
     const schoolId = req.user.schoolId;
 
-    const result = await teacherService.createTeacher(schoolId, req.body);
+    const payload = {
+      ...req.body,
+    };
+
+    if (req.file?.path) {
+      payload.profileImage = normalizeUploadPath(req.file.path);
+    }
+
+    const result = await teacherService.createTeacher(schoolId, payload);
 
     return res.status(201).json({
       success: true,
@@ -44,6 +63,38 @@ export const getTeachers = async (req: any, res: Response) => {
     return res.status(500).json({
       success: false,
       message: err.message,
+    });
+  }
+};
+
+/* =========================
+   GET TEACHER PROFILE
+========================= */
+export const getTeacherProfile = async (req: any, res: Response) => {
+  try {
+    const teacherId =
+      req?.user?.teacherId ||
+      (await teacherService.getTeacherByUserId(req?.user?._id))?._id?.toString?.();
+
+    if (!teacherId) {
+      return res.status(403).json({
+        success: false,
+        message: "Teacher not authorized",
+      });
+    }
+
+    const data = await teacherService.getTeacherProfileByTeacherId(teacherId);
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (err: any) {
+    console.error("Get teacher profile error:", err);
+
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to fetch profile",
     });
   }
 };
@@ -201,13 +252,56 @@ export const updateTeacher = async (req: any, res: Response) => {
 };
 
 /* =========================
+   UPDATE TEACHER PROFILE
+========================= */
+export const updateTeacherProfile = async (req: any, res: Response) => {
+  try {
+    const teacherId =
+      req?.user?.teacherId ||
+      (await teacherService.getTeacherByUserId(req?.user?._id))?._id?.toString?.();
+
+    if (!teacherId) {
+      return res.status(403).json({
+        success: false,
+        message: "Teacher not authorized",
+      });
+    }
+
+    const payload = {
+      ...req.body,
+    };
+
+    if (req.file?.path) {
+      payload.profileImage = normalizeUploadPath(req.file.path);
+    }
+
+    const updated = await teacherService.updateTeacherProfileService(
+      teacherId,
+      payload,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: updated,
+      message: "Profile updated successfully",
+    });
+  } catch (err: any) {
+    console.error("Update teacher profile error:", err);
+
+    return res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.message || "Failed to update profile",
+    });
+  }
+};
+
+/* =========================
    DELETE TEACHER
 ========================= */
 export const deleteTeacher = async (req: any, res: Response) => {
   try {
     const schoolId = req.user.schoolId;
     const { id } = req.params;
-    console.log(id, "deleteApi");
 
     await teacherService.deleteTeacherService(schoolId, id);
 

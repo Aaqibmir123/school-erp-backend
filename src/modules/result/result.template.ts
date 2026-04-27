@@ -5,8 +5,8 @@ export const generateMarksheetHTML = (data: any) => {
 
       <!-- HEADER -->
       <div style="text-align:center;">
-        <h2>${data.school.name}</h2>
-        <p>${data.school.address}</p>
+        <h2>${data.schoolName || data.school?.name || "School"}</h2>
+        <p>${data.schoolAddress || data.school?.address || ""}</p>
         <h3>${data.exam.name} Marksheet</h3>
       </div>
 
@@ -47,7 +47,7 @@ export const generateMarksheetHTML = (data: any) => {
         
         <div style="text-align:center;">
           ${
-            data.school.signature
+            data.school?.signature
               ? `<img src="${data.school.signature}" style="height:60px; mix-blend-mode:multiply;" />`
               : ""
           }
@@ -56,7 +56,7 @@ export const generateMarksheetHTML = (data: any) => {
 
         <div style="text-align:center;">
           ${
-            data.school.seal
+            data.school?.seal
               ? `<img src="${data.school.seal}" style="height:60px; mix-blend-mode:multiply;" />`
               : ""
           }

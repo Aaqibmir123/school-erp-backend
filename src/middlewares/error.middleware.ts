@@ -33,6 +33,19 @@ export const errorHandler = (
     });
   }
 
+  if (
+    typeof err === "object" &&
+    err &&
+    "code" in err &&
+    err.code === "LIMIT_FILE_SIZE"
+  ) {
+    return res.status(413).json({
+      success: false,
+      message: "Image is too large. Please choose a file under 5 MB.",
+      data: null,
+    });
+  }
+
   console.error("Unhandled error:", err);
 
   return res.status(500).json({

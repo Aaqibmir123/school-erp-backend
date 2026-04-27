@@ -7,9 +7,20 @@ import { TeacherModel } from "../teacher/teacher.model";
 import teacherAssignmentModel from "../teacher/teacherAssignment.model";
 import Schedule from "./schedule.model";
 
+const normalizeExamType = (value?: string) =>
+  value?.toLowerCase().replace(/[^a-z0-9]+/g, "") || "";
+
+const isSectionBasedExam = (value?: string) => {
+  const normalized = normalizeExamType(value);
+
+  return (
+    normalized.includes("classtest") || normalized.includes("unittest")
+  );
+};
+
 /* ================= CREATE SCHEDULE ================= */
 export const createScheduleService = async (data: any, user: any) => {
-  const { examId, classId, subjectId, date, startTime, endTime } = data;
+  const { examId, classId, subjectId, sectionId, date, startTime, endTime } = data;
 
   if (!mongoose.Types.ObjectId.isValid(examId)) {
     throw new Error("Invalid examId");
@@ -18,15 +29,35 @@ export const createScheduleService = async (data: any, user: any) => {
   /* ================= GET EXAM ================= */
   const exam = await academicExamModel.findById(examId).lean();
   if (!exam) throw new Error("Exam not found");
+  const sectionBasedExam = isSectionBasedExam((exam as any).examType);
 
   /* ================= GET SECTIONS ================= */
-  const sections = await SectionModel.find({ classId }).lean();
+  const sections = await SectionModel.find({
+    classId,
+    schoolId: user.schoolId,
+  }).lean();
+  const targetSections = sectionId
+    ? await SectionModel.find({
+      _id: sectionId,
+      classId,
+      schoolId: user.schoolId,
+      }).lean()
+    : sections;
+
+  if (sectionId && !targetSections.length) {
+    throw new Error("Section not found");
+  }
+
+  if (sectionBasedExam && !sectionId) {
+    throw new Error("Section is required for this exam type");
+  }
 
   /* ================= GET TEACHER ASSIGNMENTS ================= */
   const assignments = await teacherAssignmentModel
     .find({
       classId,
       subjectId,
+      schoolId: user.schoolId,
     })
     .lean();
 
@@ -46,17 +77,19 @@ export const createScheduleService = async (data: any, user: any) => {
   const existingSchedules = await Schedule.find({
     date,
     classId,
+    schoolId: user.schoolId,
   }).lean();
 
   const teacherSchedules = await Schedule.find({
     date,
+    schoolId: user.schoolId,
   }).lean();
 
   const operations: any[] = [];
 
   /* ================= CASE 1: WITH SECTIONS ================= */
-  if (sections.length > 0) {
-    for (const sec of sections) {
+  if (targetSections.length > 0) {
+    for (const sec of targetSections) {
       const keyWithSection = `${classId}-${sec._id}`;
       const keyWithoutSection = `${classId}-null`;
 
@@ -113,36 +146,7 @@ export const createScheduleService = async (data: any, user: any) => {
       });
     }
   } else {
-    /* ================= NO SECTION SCHOOL ================= */
-    const key = `${classId}-null`;
-    const teacherId = teacherMap.get(key);
-
-    if (!teacherId) {
-      throw new Error("No teacher assigned for this class");
-    }
-
-    operations.push({
-      updateOne: {
-        filter: {
-          examId,
-          classId,
-          sectionId: null,
-          subjectId,
-        },
-        update: {
-          examId,
-          classId,
-          sectionId: null,
-          subjectId,
-          teacherId,
-          date,
-          startTime,
-          endTime,
-          schoolId: user.schoolId,
-        },
-        upsert: true,
-      },
-    });
+    throw new Error("No section found for this class");
   }
 
   if (!operations.length) {
@@ -242,10 +246,22 @@ export const getPublishedExamsService = async (schoolId: string) => {
 };
 
 export const previewScheduleService = async (data: any, user: any) => {
-  const { classId, subjectId, date, startTime, endTime } = data;
+  const { examId, classId, subjectId, sectionId, date, startTime, endTime } =
+    data;
+
+  if (!mongoose.Types.ObjectId.isValid(examId)) {
+    throw new Error("Invalid examId");
+  }
+
+  const exam = await academicExamModel.findById(examId).lean();
+  if (!exam) throw new Error("Exam not found");
+  const sectionBasedExam = isSectionBasedExam((exam as any).examType);
 
   const [sections, assignments, schedules, teachers] = await Promise.all([
-    SectionModel.find({ classId }).lean(),
+    SectionModel.find({
+      classId,
+      schoolId: user.schoolId,
+    }).lean(),
 
     teacherAssignmentModel
       .find({
@@ -282,9 +298,15 @@ export const previewScheduleService = async (data: any, user: any) => {
 
   const result: any[] = [];
 
-  const targetSections = sections.length
-    ? sections
-    : [{ _id: null, name: "No Section" }];
+  const targetSections = sectionId
+    ? sections.filter((sec) => sec._id.toString() === sectionId.toString())
+    : sections.length
+      ? sections
+      : [{ _id: null, name: "No Section" }];
+
+  if (sectionBasedExam && !sectionId) {
+    throw new Error("Section is required for this exam type");
+  }
 
   for (const sec of targetSections) {
     const keyWith = `${classId}-${sec._id}`;
@@ -319,7 +341,10 @@ export const suggestTimeSlotsService = async (data: any, user: any) => {
 
   /* ================= FETCH ================= */
   const [sections, assignments, schedules] = await Promise.all([
-    SectionModel.find({ classId }).lean(),
+    SectionModel.find({
+      classId,
+      schoolId: user.schoolId,
+    }).lean(),
 
     teacherAssignmentModel
       .find({

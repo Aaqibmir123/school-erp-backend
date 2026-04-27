@@ -11,7 +11,15 @@ const examSchema = new mongoose.Schema(
 
     examType: {
       type: String,
-      enum: ["class_test", "unit_test", "mid_term", "final"],
+      enum: [
+        "class_test",
+        "unit_test",
+        "mid_term",
+        "final",
+        "written",
+        "oral",
+        "quiz",
+      ],
       required: true,
       index: true,
     },

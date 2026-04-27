@@ -7,6 +7,13 @@ export interface ISchoolProfile extends Document {
   logo?: string;
   signature?: string;
   seal?: string;
+  checkInOpenTime?: string;
+  schoolStartTime?: string;
+  lateMarkAfterTime?: string;
+  checkInCloseTime?: string;
+  schoolEndTime?: string;
+  checkOutCloseTime?: string;
+  workingDays?: string[];
 }
 
 const schoolProfileSchema = new Schema<ISchoolProfile>(
@@ -44,6 +51,41 @@ const schoolProfileSchema = new Schema<ISchoolProfile>(
     seal: {
       type: String,
       default: "",
+    },
+
+    checkInOpenTime: {
+      type: String,
+      default: "",
+    },
+
+    schoolStartTime: {
+      type: String,
+      default: "",
+    },
+
+    lateMarkAfterTime: {
+      type: String,
+      default: "",
+    },
+
+    checkInCloseTime: {
+      type: String,
+      default: "",
+    },
+
+    schoolEndTime: {
+      type: String,
+      default: "",
+    },
+
+    checkOutCloseTime: {
+      type: String,
+      default: "",
+    },
+
+    workingDays: {
+      type: [String],
+      default: [],
     },
   },
   {

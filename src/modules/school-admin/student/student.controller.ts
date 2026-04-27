@@ -4,6 +4,17 @@ import * as service from "./student.service";
 
 import { downloadStudentTemplateService } from "./student.service";
 
+const normalizeUploadPath = (filePath?: string) => {
+  if (!filePath) return undefined;
+
+  const uploadsIndex = filePath.lastIndexOf("uploads");
+  if (uploadsIndex === -1) {
+    return filePath.replace(/\\/g, "/");
+  }
+
+  return `/${filePath.slice(uploadsIndex).replace(/\\/g, "/")}`;
+};
+
 export const downloadStudentTemplate = async (req: Request, res: Response) => {
   try {
     const buffer = await downloadStudentTemplateService();
@@ -60,6 +71,25 @@ export const getStudents = async (req: Request, res: Response) => {
     res.json(result);
   } catch (err: any) {
     res.status(500).json({
+      message: err.message,
+    });
+  }
+};
+
+export const getStudentById = async (req: Request, res: Response) => {
+  try {
+    const schoolId = req?.user?.schoolId;
+    const { id } = req.params;
+
+    const student = await service.getStudentByIdService(schoolId, id);
+
+    res.json({
+      success: true,
+      data: student,
+    });
+  } catch (err: any) {
+    res.status(404).json({
+      success: false,
       message: err.message,
     });
   }
@@ -125,7 +155,15 @@ export const updateStudent = async (req: any, res: Response) => {
     const schoolId = req.user.schoolId;
     const { id } = req.params;
 
-    const student = await service.updateStudentService(schoolId, id, req.body);
+    const payload = {
+      ...req.body,
+    };
+
+    if (req.file?.path) {
+      payload.profileImage = normalizeUploadPath(req.file.path);
+    }
+
+    const student = await service.updateStudentService(schoolId, id, payload);
 
     res.json({
       success: true,

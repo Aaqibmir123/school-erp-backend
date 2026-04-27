@@ -25,6 +25,8 @@ import schoolRoutes from "./modules/school-admin/school/school.routes";
 import sectionRoutes from "./modules/school-admin/sections/sections.routes";
 import studentRoutes from "./modules/school-admin/student/student.routes";
 import subjectRoutes from "./modules/school-admin/subjects/subjects.routes";
+import dashboardRoutes from "./modules/school-admin/dashboard/dashboard.routes";
+import transportRoutes from "./modules/school-admin/transport/transport.routes";
 import schoolAdminRoutes from "./modules/school-admin/teacher/teacher.routes";
 import timeTableRoutes from "./modules/school-admin/timetable/timetable.routes";
 
@@ -39,6 +41,7 @@ import studentSideRoutes from "./modules/students/student.route";
 
 /* ================= ACADEMIC ================= */
 import attendanceRoute from "./modules/attendance/attendance.routes";
+import teacherAttendanceRoutes from "./modules/attendance/teacherAttendance.routes";
 import createExamRoutes from "./modules/exam/exam.routes";
 import homeworkRoutes from "./modules/homework/homework.route";
 import teacherResultRoutes from "./modules/result/result.routes";
@@ -107,6 +110,8 @@ app.use("/api/school-admin/timetable", timeTableRoutes);
 app.use("/api/school-admin/students", studentRoutes);
 app.use("/api/school-admin", createExamsRoutesByAdmin);
 app.use("/api/school-admin/schedule", examScheduleRoutesByAdmin);
+app.use("/api/school-admin/dashboard", dashboardRoutes);
+app.use("/api/school-admin/transport", transportRoutes);
 app.use("/api/school", schoolRoutes);
 app.use("/api/school-admin/fee", feeAdminRoutes);
 app.use("/api/school-admin/fees", receiptRoutes);
@@ -119,6 +124,7 @@ app.use("/api/teacher/attendance", midTermAttendanceRoutes);
 app.use("/api/student", studentSideRoutes);
 
 app.use("/api/attendance", attendanceRoute);
+app.use("/api/attendance", teacherAttendanceRoutes);
 app.use("/api/homework", homeworkRoutes);
 app.use("/api/exam", createExamRoutes);
 app.use("/api/result", teacherResultRoutes);

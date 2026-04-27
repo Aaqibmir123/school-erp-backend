@@ -2,6 +2,28 @@ import Exam from "./exam.model";
 
 import mongoose from "mongoose";
 
+const normalizeExamType = (value: string) => {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
+  const aliases: Record<string, string> = {
+    class_test: "class_test",
+    classtest: "class_test",
+    written: "written",
+    oral: "oral",
+    quiz: "quiz",
+    unit_test: "unit_test",
+    unittest: "unit_test",
+    mid_term: "mid_term",
+    midterm: "mid_term",
+    final: "final",
+  };
+
+  return aliases[normalized] || normalized;
+};
+
 export const createExamService = async (data: any, user: any) => {
   const toObjectId = (val: any) => {
     if (!val) return null;
@@ -13,6 +35,7 @@ export const createExamService = async (data: any, user: any) => {
   const sectionId = toObjectId(data.sectionId);
   const subjectId = toObjectId(data.subjectId);
   const schoolId = toObjectId(user.schoolId);
+  const examType = normalizeExamType(data.examType);
 
   /* ================= VALIDATION ================= */
 
@@ -26,7 +49,7 @@ export const createExamService = async (data: any, user: any) => {
     classIds: classId,
     sectionId,
     subjectId: subjectId || null,
-    examType: data.examType,
+    examType,
     date: new Date(data.date),
     createdById: user.teacherId || user.id,
   }).lean();
@@ -39,7 +62,7 @@ export const createExamService = async (data: any, user: any) => {
 
   const payload = {
     name: data.name?.trim(),
-    examType: data.examType,
+    examType,
     subjectId: subjectId || null,
     sectionId, // 💣 IMPORTANT
     chapter: data.chapter || "",
@@ -76,7 +99,12 @@ export const getMyExamsService = async (teacherId: string) => {
 };
 
 export const updateExamService = async (id: string, data: any) => {
-  return await Exam.findByIdAndUpdate(id, data, { new: true });
+  const updatePayload = {
+    ...data,
+    ...(data.examType ? { examType: normalizeExamType(data.examType) } : {}),
+  };
+
+  return await Exam.findByIdAndUpdate(id, updatePayload, { new: true });
 };
 
 /* ================= DELETE ================= */

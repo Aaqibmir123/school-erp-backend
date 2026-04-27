@@ -10,7 +10,14 @@ const academicExamSchema = new Schema(
 
     examType: {
       type: String,
-      enum: ["mid_term", "final"],
+      required: true,
+      index: true,
+      trim: true,
+    },
+
+    academicYearId: {
+      type: Schema.Types.ObjectId,
+      ref: "AcademicYear",
       required: true,
       index: true,
     },
@@ -50,5 +57,7 @@ const academicExamSchema = new Schema(
   },
   { timestamps: true },
 );
+
+academicExamSchema.index({ schoolId: 1, academicYearId: 1, isPublished: 1 });
 
 export default mongoose.model("AcademicExam", academicExamSchema);

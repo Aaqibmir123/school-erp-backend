@@ -25,6 +25,16 @@
         enum: ["male", "female"],
       },
 
+      dateOfBirth: {
+        type: Date,
+        default: null,
+      },
+
+      admissionDate: {
+        type: Date,
+        default: null,
+      },
+
       classId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Class",
@@ -42,6 +52,7 @@
 
       fatherName: String,
       parentPhone: String,
+      profileImage: String,
     },
     { timestamps: true }
   )

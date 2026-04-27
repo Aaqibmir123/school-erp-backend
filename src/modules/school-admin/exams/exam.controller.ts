@@ -10,7 +10,7 @@ export const createExam = async (req: any, res: any) => {
   try {
     const exam = await createExamService({
       data: req.body,
-      user: req.user,
+      user: { ...req.user, academicYearId: req.academicYearId },
     });
 
     return res.status(201).json({
@@ -31,6 +31,7 @@ export const getExams = async (req: any, res: any) => {
   try {
     const exams = await getExamsService({
       schoolId: req.user.schoolId,
+      academicYearId: req.academicYearId,
     });
 
     return res.status(200).json({
@@ -51,7 +52,7 @@ export const updateExam = async (req: any, res: any) => {
     const exam = await updateExamService({
       id: req.params.id,
       data: req.body,
-      user: req.user,
+      user: { ...req.user, academicYearId: req.academicYearId },
     });
 
     return res.status(200).json({
@@ -72,7 +73,7 @@ export const deleteExam = async (req: any, res: any) => {
   try {
     await deleteExamService({
       id: req.params.id,
-      user: req.user,
+      user: { ...req.user, academicYearId: req.academicYearId },
     });
 
     return res.status(200).json({

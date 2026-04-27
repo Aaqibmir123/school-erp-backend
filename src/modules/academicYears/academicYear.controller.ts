@@ -63,3 +63,25 @@ export const getAcademicYears = async (
 
   }
 };
+
+export const setActiveAcademicYear = async (
+  req: any,
+  res: Response
+) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { id } = req.params;
+
+    const data = await service.setActiveAcademicYearService(schoolId, id);
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update academic year",
+    });
+  }
+};

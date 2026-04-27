@@ -1,4 +1,5 @@
 import { setPasswordTemplate } from "../../templates/setPasswordTemplate";
+import { env } from "../../config/env";
 import { sendEmail } from "../../utils/email";
 import { generateSetPasswordToken } from "../../utils/jwt";
 import { School } from "../school/school.model";
@@ -6,6 +7,10 @@ import { User, UserRole } from "../user/user.model";
 
 export const getPendingSchools = async () => {
   return School.find({ status: "PENDING" });
+};
+
+export const getAllSchools = async () => {
+  return School.find().sort({ createdAt: -1 });
 };
 
 export const approveSchool = async (schoolId: string) => {
@@ -39,9 +44,15 @@ export const approveSchool = async (schoolId: string) => {
 
   const token = generateSetPasswordToken(user._id.toString());
 
-  const link = `http://localhost:3000/set-password?token=${token}`;
+  // WHY: The approval email must point to the deployed web app so school
+  // admins can open the password setup page from any device.
+  const baseUrl = env.WEB_APP_URL || "https://aaqib-school-erp-admin.vercel.app";
+  const link = `${baseUrl.replace(/\/$/, "")}/set-password?token=${token}`;
 
   /* SEND EMAIL */
+  if (!user.email) {
+    throw new Error("School admin email is missing");
+  }
 
   await sendEmail(user.email, "Set Your Password", setPasswordTemplate(link));
 
@@ -49,6 +60,22 @@ export const approveSchool = async (schoolId: string) => {
 
   school.status = "APPROVED";
 
+  await school.save();
+
+  return school;
+};
+
+export const updateSchoolStatus = async (
+  schoolId: string,
+  status: "PENDING" | "APPROVED" | "REJECTED",
+) => {
+  const school = await School.findById(schoolId);
+
+  if (!school) {
+    throw new Error("School not found");
+  }
+
+  school.status = status;
   await school.save();
 
   return school;

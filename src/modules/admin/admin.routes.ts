@@ -10,10 +10,22 @@ router.get(
   controller.getPendingSchools
 )
 
+router.get(
+  "/schools",
+  superAdminMiddleware,
+  controller.getAllSchools
+)
+
 router.patch(
   "/approve-school/:id",
   superAdminMiddleware,
   controller.approveSchool
+)
+
+router.patch(
+  "/school-status/:id",
+  superAdminMiddleware,
+  controller.updateSchoolStatus
 )
 
 export default router

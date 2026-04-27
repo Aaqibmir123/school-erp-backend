@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       required: function (this: any) {
-        return this.role !== UserRole.SUPER_ADMIN;
+        return this.role === UserRole.SCHOOL_ADMIN;
       },
     },
 
@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       sparse: true, // 🔥 IMPORTANT (warna null pe conflict)
       required: function (this: any) {
-        return this.role !== UserRole.SUPER_ADMIN;
+        return this.role === UserRole.SCHOOL_ADMIN;
       },
     },
 

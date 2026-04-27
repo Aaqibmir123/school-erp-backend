@@ -38,3 +38,19 @@ export const getActiveAcademicYearService = async (
   });
 
 };
+
+export const setActiveAcademicYearService = async (
+  schoolId: string,
+  id: string
+) => {
+  await AcademicYear.updateMany(
+    { schoolId },
+    { $set: { isActive: false } }
+  );
+
+  return AcademicYear.findOneAndUpdate(
+    { _id: id, schoolId },
+    { $set: { isActive: true } },
+    { new: true }
+  );
+};

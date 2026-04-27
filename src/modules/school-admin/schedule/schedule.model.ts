@@ -63,9 +63,6 @@ const scheduleSchema = new Schema(
   { timestamps: true },
 );
 
-// 🔥 prevent duplicate subject schedule
-scheduleSchema.index({ examId: 1, classId: 1, subjectId: 1 }, { unique: true });
-
 // 🔥 fast teacher query
 scheduleSchema.index(
   { examId: 1, classId: 1, sectionId: 1, subjectId: 1 },

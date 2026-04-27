@@ -19,9 +19,20 @@ const resultSchema = new mongoose.Schema(
       ref: "Class",
     },
 
+    sectionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Section",
+      index: true,
+    },
+
     subjectId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Subject",
+    },
+
+    rollNumberSnapshot: {
+      type: Number,
+      default: null,
     },
 
     marksObtained: {
@@ -48,7 +59,13 @@ const resultSchema = new mongoose.Schema(
 );
 
 // ✅ prevent duplicate (IMPORTANT)
-resultSchema.index({ examId: 1, studentId: 1, subjectId: 1 }, { unique: true });
+resultSchema.index(
+  { examId: 1, studentId: 1, subjectId: 1, schoolId: 1 },
+  { unique: true },
+);
+
+resultSchema.index({ schoolId: 1, classId: 1, sectionId: 1, createdAt: -1 });
+resultSchema.index({ schoolId: 1, studentId: 1, createdAt: -1 });
 
 export const ResultModel =
   mongoose.models.Result || mongoose.model("Result", resultSchema);

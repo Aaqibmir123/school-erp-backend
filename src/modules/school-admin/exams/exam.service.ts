@@ -22,6 +22,7 @@ export const createExamService = async ({ data, user }: any) => {
     totalMarks: Number(totalMarks),
     startDate,
     endDate,
+    academicYearId: user.academicYearId,
     schoolId: user.schoolId,
     createdById: user._id || user.id,
   });
@@ -30,9 +31,16 @@ export const createExamService = async ({ data, user }: any) => {
 };
 
 /* ================= GET ================= */
-export const getExamsService = async ({ schoolId }: any) => {
+export const getExamsService = async ({ schoolId, academicYearId }: any) => {
   return await academicExamModel
-    .find({ schoolId })
+    .find({
+      schoolId,
+      $or: [
+        { academicYearId },
+        { academicYearId: { $exists: false } },
+        { academicYearId: null },
+      ],
+    })
     .sort({ createdAt: -1 })
     .lean();
 };
@@ -58,6 +66,11 @@ export const updateExamService = async ({ id, data, user }: any) => {
     {
       _id: id,
       schoolId: user.schoolId,
+      $or: [
+        { academicYearId: user.academicYearId },
+        { academicYearId: { $exists: false } },
+        { academicYearId: null },
+      ],
     },
     updatePayload,
     { new: true },
@@ -77,6 +90,11 @@ export const deleteExamService = async ({ id, user }: any) => {
   const exam = await academicExamModel.findOneAndDelete({
     _id: id,
     schoolId: user.schoolId,
+    $or: [
+      { academicYearId: user.academicYearId },
+      { academicYearId: { $exists: false } },
+      { academicYearId: null },
+    ],
   });
 
   if (!exam) throw new Error("Exam not found");

@@ -1,8 +1,15 @@
 import mongoose from "mongoose";
 import { ISchoolProfile, SchoolProfile } from "./schoolProfile.model";
 // ✅ GET SCHOOL PROFILE
-export const getSchoolProfile = async (): Promise<ISchoolProfile | null> => {
-  return await SchoolProfile.findOne().lean();
+export const getSchoolProfile = async (
+  schoolId: string,
+): Promise<ISchoolProfile | null> => {
+  if (!schoolId) {
+    throw new Error("schoolId is required");
+  }
+
+  const schoolObjectId = new mongoose.Types.ObjectId(schoolId);
+  return await SchoolProfile.findOne({ schoolId: schoolObjectId }).lean();
 };
 
 export const upsertSchoolProfile = async (
