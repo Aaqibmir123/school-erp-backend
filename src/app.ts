@@ -97,6 +97,18 @@ app.use(
 
 /* ================= ROUTES ================= */
 
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    message: "School ERP backend is running",
+    apiBase: "/api",
+  });
+});
+
+app.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 
