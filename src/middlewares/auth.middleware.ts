@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
-import { JwtPayload } from "../../../shared-types/jwt.types";
+import { JwtPayload } from "../../shared-types/jwt.types";
 import { env } from "../config/env";
 import { ApiError } from "../utils/apiError";
 

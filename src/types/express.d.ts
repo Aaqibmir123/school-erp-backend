@@ -1,4 +1,4 @@
-import { JwtPayload } from "../../../shared-types/jwt.types";
+import { JwtPayload } from "../../shared-types/jwt.types";
 
 declare global {
   namespace Express {

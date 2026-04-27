@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 
-import { ApplySchoolDTO, LoginDTO } from "../../../../shared-types/auth.types";
+import { ApplySchoolDTO, LoginDTO } from "../../../shared-types/auth.types";
 import {
   SUPER_ADMIN_PASSWORD,
   SUPER_ADMIN_PHONE,

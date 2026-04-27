@@ -1,5 +1,5 @@
 import { ClassModel } from "./class.model"
-import { CreateClassesDTO } from "../../../../../shared-types/class.types"
+import { CreateClassesDTO } from "../../../../shared-types/class.types"
 import { CLASS_ORDER } from "./class.constants"
 
 export const createClasses = async (

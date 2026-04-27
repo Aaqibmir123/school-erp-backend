@@ -1,4 +1,4 @@
-import { AssignSubjectPayload } from "../../../../../shared-types/teacherAssignment.types";
+import { AssignSubjectPayload } from "../../../../shared-types/teacherAssignment.types";
 import timetableModel from "../timetable/timetable.model";
 import { TeacherModel } from "./teacher.model";
 import TeacherAssignment from "./teacherAssignment.model";

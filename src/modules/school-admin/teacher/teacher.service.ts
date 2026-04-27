@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
-import { CreateTeacherDTO } from "../../../../../shared-types/teacher.types";
+import { CreateTeacherDTO } from "../../../../shared-types/teacher.types";
 import { getDayFromDate, isSameDate } from "../../../utils/time.utils";
 import { User, UserRole } from "../../user/user.model";
 import { StudentModel } from "../student/student.model";

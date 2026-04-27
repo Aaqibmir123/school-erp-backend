@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { PeriodType } from "../../../../../shared-types/period.types";
+import { PeriodType } from "../../../../shared-types/period.types";
 
 const periodSchema = new mongoose.Schema(
   {
