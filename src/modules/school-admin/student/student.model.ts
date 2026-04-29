@@ -53,6 +53,25 @@
       fatherName: String,
       parentPhone: String,
       profileImage: String,
+
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+
+      parentUserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+
+      status: {
+        type: String,
+        enum: ["active", "disabled"],
+        default: "active",
+        index: true,
+      },
     },
     { timestamps: true }
   )
@@ -63,5 +82,7 @@
     sectionId: 1,
     rollNumber: 1,
   })
+
+  studentSchema.index({ userId: 1 })
 
   export const StudentModel = mongoose.model("Student", studentSchema)

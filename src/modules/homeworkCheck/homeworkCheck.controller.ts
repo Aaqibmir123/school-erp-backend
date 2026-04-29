@@ -56,7 +56,6 @@ export const getHomeworkCheckController = async (
 ) => {
   try {
     const { homeworkId } = req.params;
-    console.log("homework");
 
     if (!homeworkId) {
       return res.status(400).json({

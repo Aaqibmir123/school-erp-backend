@@ -1,3 +1,4 @@
+import axios from "axios";
 import bcrypt from "bcryptjs";
 
 import { ApplySchoolDTO, LoginDTO } from "../../../shared-types/auth.types";
@@ -5,6 +6,7 @@ import {
   SUPER_ADMIN_PASSWORD,
   SUPER_ADMIN_PHONE,
 } from "../../config/superAdmin";
+import { ensureUserRoleAccess } from "../../utils/accountAccess";
 import { ApiError } from "../../utils/apiError";
 import {
   generateRefreshToken,
@@ -12,12 +14,10 @@ import {
   verifyRefreshToken,
   verifyToken,
 } from "../../utils/jwt";
-import { StudentModel } from "../school-admin/student/student.model";
 import { TeacherModel } from "../school-admin/teacher/teacher.model";
 import { School } from "../school/school.model";
 import { User, UserRole } from "../user/user.model";
 import { getFirebaseAdmin } from "./firebase";
-import { OtpModel } from "./otp.model";
 
 /* ================= TYPES ================= */
 type AuthUserResponse = {
@@ -78,65 +78,33 @@ const normalizeUploadUrl = (filePath?: string | null) => {
   return `/${filePath.slice(uploadsIndex).replace(/\\/g, "/")}`;
 };
 
+const ensureActiveAccount = async (user: any) => {
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.status === "disabled") {
+    throw new ApiError(403, "Your account is disabled by school admin");
+  }
+
+  return ensureUserRoleAccess(user);
+};
+
 /* ================= CHECK USER ================= */
 export const checkUser = async (phone: string) => {
   const user = await User.findOne({
     phone: { $in: getPhoneVariants(phone) },
-  }).select("role");
+  }).select("_id role phone schoolId status");
 
   if (!user) {
     throw new ApiError(404, "User not found");
   }
 
+  await ensureActiveAccount(user);
+
   return { role: user.role };
 };
 
-/* ================= SEND OTP ================= */
-export const sendOtp = async (phone: string) => {
-  const normalizedPhone = normalizePhone(phone);
-
-  await OtpModel.deleteMany({ phone: normalizedPhone });
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  await OtpModel.create({
-    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-    otp,
-    phone: normalizedPhone,
-  });
-
-  return { sent: true };
-};
-
-/* ================= VERIFY OTP ================= */
-export const verifyOtp = async (phone: string, otp: string) => {
-  const normalizedPhone = normalizePhone(phone);
-
-  const record = await OtpModel.findOne({ phone: normalizedPhone }).sort({
-    createdAt: -1,
-  });
-
-  if (!record) throw new ApiError(404, "OTP not found");
-  if (record.expiresAt < new Date()) throw new ApiError(400, "OTP expired");
-  if (String(record.otp) !== String(otp))
-    throw new ApiError(400, "Invalid OTP");
-
-  await OtpModel.deleteMany({ phone: normalizedPhone });
-
-  let user = await User.findOne({
-    phone: { $in: getPhoneVariants(normalizedPhone) },
-  });
-
-  if (!user) {
-    user = await User.create({
-      name: `Parent ${normalizedPhone}`,
-      phone: normalizedPhone,
-      role: UserRole.PARENT,
-    });
-  }
-
-  return buildAuthResponse(user);
-};
 
 /* ================= PASSWORD LOGIN ================= */
 export const login = async (data: LoginDTO) => {
@@ -185,6 +153,8 @@ export const login = async (data: LoginDTO) => {
 
   if (!match) throw new ApiError(401, "Invalid password");
 
+  await ensureActiveAccount(user);
+
   return buildAuthResponse(user);
 };
 
@@ -200,7 +170,7 @@ export const firebaseLoginService = async (idToken: string) => {
     const phone = normalizePhone(rawPhone);
 
     const teacher = await TeacherModel.findOne({ phone }).select(
-      "_id firstName lastName email phone schoolId profileImage userId",
+      "_id firstName lastName email phone schoolId profileImage userId status",
     );
 
     let user = await User.findOne({ phone });
@@ -215,6 +185,7 @@ export const firebaseLoginService = async (idToken: string) => {
           phone,
           role: UserRole.TEACHER,
           schoolId: teacher.schoolId,
+          status: "active",
         });
       } else if (user.role !== UserRole.TEACHER) {
         user.role = UserRole.TEACHER;
@@ -222,6 +193,7 @@ export const firebaseLoginService = async (idToken: string) => {
           user.name || `${teacher.firstName} ${teacher.lastName}`.trim();
         user.email = user.email || fallbackEmail;
         user.schoolId = teacher.schoolId;
+        user.status = "active";
         await user.save();
       }
 
@@ -238,8 +210,11 @@ export const firebaseLoginService = async (idToken: string) => {
         name: `Parent ${phone}`,
         phone,
         role: UserRole.PARENT,
+        status: "active",
       });
     }
+
+    await ensureActiveAccount(user);
 
     return buildAuthResponse(user);
   } catch (error: any) {
@@ -253,6 +228,7 @@ const buildAuthResponse = async (user: any) => {
   let teacherProfileImage: string | undefined;
   let students: any[] = [];
   const baseUser = sanitizeAuthUser(user);
+  const access = await ensureActiveAccount(user);
 
   if (user.role === UserRole.TEACHER) {
     const teacher =
@@ -280,14 +256,7 @@ const buildAuthResponse = async (user: any) => {
   }
 
   if (user.role === UserRole.PARENT) {
-    students = await StudentModel.find({
-      parentPhone: { $in: getPhoneVariants(user.phone || "") },
-      schoolId: user.schoolId,
-    })
-      .populate("classId", "name className")
-      .populate("sectionId", "name")
-      .select("_id firstName lastName classId sectionId")
-      .lean();
+    students = (access as any)?.students || [];
   }
 
   const token = generateToken({
@@ -349,6 +318,8 @@ export const refreshSession = async (refreshToken: string) => {
   const user = await User.findById(decoded.id);
   if (!user) throw new ApiError(404, "User not found");
 
+  await ensureActiveAccount(user);
+
   return buildAuthResponse(user);
 };
 
@@ -367,3 +338,5 @@ export const applySchool = async (data: ApplySchoolDTO) => {
     status: "PENDING",
   });
 };
+
+

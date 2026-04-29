@@ -1,42 +1,76 @@
 import { Router } from "express";
 import multer from "multer";
 import { authMiddleware } from "../../../middlewares/auth.middleware";
+import { roleMiddleware } from "../../../middlewares/role.middleware";
 import { uploadFile } from "../../../middlewares/upload.middleware";
 import * as bulkController from "./student.bulk.controller";
 import * as controller from "./student.controller";
 
 const router = Router();
 
-const upload = multer({ dest: "uploads/" });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
 
-router.post("/", authMiddleware, controller.createStudent);
+router.post(
+  "/",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  controller.createStudent,
+);
 
-router.get("/", authMiddleware, controller.getStudents);
-router.get("/template", authMiddleware, controller.downloadStudentTemplate);
-router.get("/:id", authMiddleware, controller.getStudentById);
+router.get("/", authMiddleware, roleMiddleware("SCHOOL_ADMIN"), controller.getStudents);
+router.get(
+  "/template",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  controller.downloadStudentTemplate,
+);
+router.get("/:id", authMiddleware, roleMiddleware("SCHOOL_ADMIN"), controller.getStudentById);
 
 /* BULK PREVIEW */
 
 router.post(
   "/bulk-preview",
   authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
   upload.single("file"),
   bulkController.previewStudentBulk,
 );
 
 /* BULK IMPORT */
 
-router.post("/bulk-import", authMiddleware, bulkController.bulkImportStudents);
+router.post(
+  "/bulk-import",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  bulkController.bulkImportStudents,
+);
 
-router.get("/by-class", authMiddleware, controller.getStudentsByClass);
+router.get("/by-class", authMiddleware, roleMiddleware("SCHOOL_ADMIN"), controller.getStudentsByClass);
 
 router.put(
   "/:id",
   authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN", "PARENT"),
   uploadFile("students").single("profileImage"),
   controller.updateStudent,
 );
-router.delete("/:id", authMiddleware, controller.deleteStudent);
-router.get("/students/all", authMiddleware, controller.getAllStudentsByClass);
+router.patch(
+  "/:id/status",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  controller.updateStudentStatus,
+);
+router.delete("/:id", authMiddleware, roleMiddleware("SCHOOL_ADMIN"), controller.deleteStudent);
+router.get(
+  "/students/all",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  controller.getAllStudentsByClass,
+);
 
 export default router;

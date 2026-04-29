@@ -1,16 +1,6 @@
 import { Request, Response } from "express";
 import * as teacherService from "./teacher.service";
-
-const normalizeUploadPath = (filePath?: string) => {
-  if (!filePath) return undefined;
-
-  const uploadsIndex = filePath.lastIndexOf("uploads");
-  if (uploadsIndex === -1) {
-    return filePath.replace(/\\/g, "/");
-  }
-
-  return `/${filePath.slice(uploadsIndex).replace(/\\/g, "/")}`;
-};
+import { uploadBufferToCloudinary } from "../../../utils/cloudinary";
 
 /* =========================
    CREATE TEACHER
@@ -23,8 +13,11 @@ export const createTeacher = async (req: any, res: Response) => {
       ...req.body,
     };
 
-    if (req.file?.path) {
-      payload.profileImage = normalizeUploadPath(req.file.path);
+    if (req.file) {
+      payload.profileImage = await uploadBufferToCloudinary(
+        req.file,
+        "teachers",
+      );
     }
 
     const result = await teacherService.createTeacher(schoolId, payload);
@@ -50,8 +43,10 @@ export const createTeacher = async (req: any, res: Response) => {
 export const getTeachers = async (req: any, res: Response) => {
   try {
     const schoolId = req.user.schoolId;
+    const status =
+      typeof req.query?.status === "string" ? req.query.status : undefined;
 
-    const data = await teacherService.getTeachers(schoolId);
+    const data = await teacherService.getTeachers(schoolId, status);
 
     return res.json({
       success: true,
@@ -74,7 +69,7 @@ export const getTeacherProfile = async (req: any, res: Response) => {
   try {
     const teacherId =
       req?.user?.teacherId ||
-      (await teacherService.getTeacherByUserId(req?.user?._id))?._id?.toString?.();
+      (await teacherService.getTeacherByUserId(req?.user?.id))?._id?.toString?.();
 
     if (!teacherId) {
       return res.status(403).json({
@@ -258,7 +253,7 @@ export const updateTeacherProfile = async (req: any, res: Response) => {
   try {
     const teacherId =
       req?.user?.teacherId ||
-      (await teacherService.getTeacherByUserId(req?.user?._id))?._id?.toString?.();
+      (await teacherService.getTeacherByUserId(req?.user?.id))?._id?.toString?.();
 
     if (!teacherId) {
       return res.status(403).json({
@@ -271,8 +266,11 @@ export const updateTeacherProfile = async (req: any, res: Response) => {
       ...req.body,
     };
 
-    if (req.file?.path) {
-      payload.profileImage = normalizeUploadPath(req.file.path);
+    if (req.file) {
+      payload.profileImage = await uploadBufferToCloudinary(
+        req.file,
+        "teachers",
+      );
     }
 
     const updated = await teacherService.updateTeacherProfileService(
@@ -315,6 +313,41 @@ export const deleteTeacher = async (req: any, res: Response) => {
     return res.status(err.statusCode || 500).json({
       success: false,
       message: err.message || "Internal Server Error",
+    });
+  }
+};
+
+export const updateTeacherStatus = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["active", "disabled"].includes(String(status))) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be active or disabled",
+      });
+    }
+
+    const data = await teacherService.updateTeacherAccountStatusService(
+      schoolId,
+      id,
+      status,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data,
+      message:
+        status === "active"
+          ? "Teacher account enabled successfully"
+          : "Teacher account disabled successfully",
+    });
+  } catch (err: any) {
+    return res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.message || "Failed to update teacher status",
     });
   }
 };

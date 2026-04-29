@@ -10,18 +10,6 @@ export const checkUserSchema = z.object({
   phone: phoneSchema,
 });
 
-export const sendOtpSchema = z.object({
-  phone: phoneSchema,
-});
-
-export const verifyOtpSchema = z.object({
-  otp: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, "Enter a valid 6-digit OTP"),
-  phone: phoneSchema,
-});
-
 export const loginSchema = z
   .object({
     email: z.string().trim().optional(),
@@ -29,8 +17,6 @@ export const loginSchema = z
     phone: z.string().trim().optional(),
   })
   .superRefine((value, ctx) => {
-    // WHY: The admin web currently uses one field for both email and phone, so
-    // we only require an identifier instead of forcing a strict email format.
     if (!value.email && !value.phone) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

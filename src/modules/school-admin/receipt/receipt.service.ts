@@ -120,6 +120,7 @@ export const generateReceiptService = async ({
 
     studentName,
     fatherName: student.fatherName || "N/A",
+    rollNumber: student.rollNumber ?? "N/A",
     address: student.address || "N/A",
 
     className: classData?.name || "N/A",

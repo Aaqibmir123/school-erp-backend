@@ -52,6 +52,12 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "School",
     },
+
+    status: {
+      type: String,
+      enum: ["active", "disabled"],
+      default: "active",
+    },
   },
   { timestamps: true },
 );

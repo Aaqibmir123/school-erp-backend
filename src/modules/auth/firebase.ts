@@ -11,29 +11,55 @@ type FirebaseCredentials = {
   projectId?: string;
 };
 
-const localFirebaseConfigPath = path.join(process.cwd(), "src", "config", "firebase.json");
+let firebaseConfigError: string | null = null;
+
+const resolveServiceAccountPath = () => {
+  if (!env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+    return null;
+  }
+
+  return path.isAbsolute(env.FIREBASE_SERVICE_ACCOUNT_PATH)
+    ? env.FIREBASE_SERVICE_ACCOUNT_PATH
+    : path.join(process.cwd(), env.FIREBASE_SERVICE_ACCOUNT_PATH);
+};
+
+const localFirebaseConfigPath = resolveServiceAccountPath();
 
 const readFirebaseJsonCredentials = (): FirebaseCredentials => {
-  if (!existsSync(localFirebaseConfigPath)) {
+  if (!localFirebaseConfigPath || !existsSync(localFirebaseConfigPath)) {
     return {};
   }
 
-  const rawFile = readFileSync(localFirebaseConfigPath, "utf8");
-  const parsedFile = JSON.parse(rawFile) as {
-    client_email?: string;
-    client_id?: string;
-    private_key?: string;
-    private_key_id?: string;
-    project_id?: string;
-  };
+  try {
+    const rawFile = readFileSync(localFirebaseConfigPath, "utf8").trim();
 
-  return {
-    clientEmail: parsedFile.client_email,
-    clientId: parsedFile.client_id,
-    privateKey: parsedFile.private_key,
-    privateKeyId: parsedFile.private_key_id,
-    projectId: parsedFile.project_id,
-  };
+    if (!rawFile) {
+      firebaseConfigError = `Firebase service account file is empty at ${localFirebaseConfigPath}.`;
+      return {};
+    }
+
+    const parsedFile = JSON.parse(rawFile) as {
+      client_email?: string;
+      client_id?: string;
+      private_key?: string;
+      private_key_id?: string;
+      project_id?: string;
+    };
+
+    firebaseConfigError = null;
+
+    return {
+      clientEmail: parsedFile.client_email,
+      clientId: parsedFile.client_id,
+      privateKey: parsedFile.private_key,
+      privateKeyId: parsedFile.private_key_id,
+      projectId: parsedFile.project_id,
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Unknown error";
+    firebaseConfigError = `Firebase service account file at ${localFirebaseConfigPath} is invalid: ${reason}`;
+    return {};
+  }
 };
 
 const envFirebaseCredentials: FirebaseCredentials = {
@@ -64,7 +90,8 @@ export const isFirebaseConfigured = Boolean(
 export const getFirebaseAdmin = () => {
   if (!isFirebaseConfigured) {
     throw new Error(
-      "Firebase credentials are missing. Set FIREBASE_* values in backend/.env or add src/config/firebase.json locally.",
+      firebaseConfigError ||
+        "Firebase credentials are missing. Set FIREBASE_* values in backend/.env or provide FIREBASE_SERVICE_ACCOUNT_PATH locally.",
     );
   }
 

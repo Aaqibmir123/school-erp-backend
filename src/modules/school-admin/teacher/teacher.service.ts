@@ -284,6 +284,7 @@ export const createTeacher = async (
     phone: data.phone,
     role: UserRole.TEACHER,
     schoolId,
+    status: "active",
   });
 
   const teacher = await TeacherModel.create({
@@ -303,12 +304,14 @@ export const createTeacher = async (
 ========================= */
 export const getTeachers = async (
   schoolId: string,
-  includeInactive?: boolean,
+  status?: string,
 ) => {
   const filter: any = { schoolId };
 
-  if (!includeInactive) {
-    filter.status = "active";
+  if (status && status !== "all") {
+    filter.status = status;
+  } else {
+    filter.status = { $ne: "inactive" };
   }
 
   return TeacherModel.find(filter).sort({ createdAt: -1 }).lean();
@@ -422,6 +425,11 @@ export const updateTeacherService = async (
       name: `${teacher.firstName} ${teacher.lastName}`,
       email: teacher.email,
       phone: teacher.phone,
+      ...(teacher.status === "disabled"
+        ? { status: "disabled" }
+        : teacher.status === "active"
+          ? { status: "active" }
+          : {}),
     });
   }
 
@@ -492,5 +500,37 @@ export const deleteTeacherService = async (
   teacher.status = "inactive";
   await teacher.save();
 
+  if (teacher.userId) {
+    await User.findByIdAndUpdate(teacher.userId, {
+      status: "disabled",
+    });
+  }
+
   return true;
+};
+
+export const updateTeacherAccountStatusService = async (
+  schoolId: string,
+  teacherId: string,
+  status: "active" | "disabled",
+) => {
+  const teacher = await TeacherModel.findOne({
+    _id: teacherId,
+    schoolId,
+  });
+
+  if (!teacher) {
+    const err: any = new Error("Teacher not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  teacher.status = status;
+  await teacher.save();
+
+  if (teacher.userId) {
+    await User.findByIdAndUpdate(teacher.userId, { status });
+  }
+
+  return teacher;
 };

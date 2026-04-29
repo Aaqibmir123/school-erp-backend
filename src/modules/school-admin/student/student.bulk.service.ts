@@ -182,8 +182,8 @@ export const importStudentBulkService = async (students: any[], user: any) => {
 
 /* ================= PREVIEW SERVICE ================= */
 
-export const previewStudentBulkService = async (filePath: string) => {
-  const rows = parseStudentExcel(filePath);
+export const previewStudentBulkService = async (fileBuffer: Buffer) => {
+  const rows = parseStudentExcel(fileBuffer);
 
   const preview: any[] = [];
   const errors: any[] = [];

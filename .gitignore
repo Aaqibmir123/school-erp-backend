@@ -1,6 +1,12 @@
 node_modules
 dist
 .env
+.env.*
 src/config/firebase.json
+src/config/firebase*.json
+*service-account*.json
+.secrets/
 logs
 *.log
+public/receipts/
+uploads/

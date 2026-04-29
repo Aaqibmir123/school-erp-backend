@@ -44,6 +44,7 @@ import attendanceRoute from "./modules/attendance/attendance.routes";
 import teacherAttendanceRoutes from "./modules/attendance/teacherAttendance.routes";
 import createExamRoutes from "./modules/exam/exam.routes";
 import homeworkRoutes from "./modules/homework/homework.route";
+import noticeRoutes from "./modules/notice/notice.routes";
 import teacherResultRoutes from "./modules/result/result.routes";
 
 const app = express();
@@ -53,7 +54,13 @@ const trustedPreviewOriginPatterns = [
   /^https:\/\/aaqib-school-erp-admi(?:-[a-z0-9-]+)?\.vercel\.app$/i,
 ];
 
+const trustedProductionOrigins = new Set([
+  "https://smartschoolerp.co.in",
+  "https://www.smartschoolerp.co.in",
+]);
+
 const isAllowedOrigin = (origin: string) =>
+  trustedProductionOrigins.has(origin) ||
   env.clientOrigins.includes(origin) ||
   trustedPreviewOriginPatterns.some((pattern) => pattern.test(origin));
 
@@ -138,6 +145,7 @@ app.use("/api/student", studentSideRoutes);
 app.use("/api/attendance", attendanceRoute);
 app.use("/api/attendance", teacherAttendanceRoutes);
 app.use("/api/homework", homeworkRoutes);
+app.use("/api/school-admin/notices", noticeRoutes);
 app.use("/api/exam", createExamRoutes);
 app.use("/api/result", teacherResultRoutes);
 

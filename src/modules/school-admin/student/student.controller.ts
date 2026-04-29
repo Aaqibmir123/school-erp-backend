@@ -1,19 +1,14 @@
 import { Request, Response } from "express";
 import { StudentModel } from "./student.model";
 import * as service from "./student.service";
+import { uploadBufferToCloudinary } from "../../../utils/cloudinary";
 
 import { downloadStudentTemplateService } from "./student.service";
 
-const normalizeUploadPath = (filePath?: string) => {
-  if (!filePath) return undefined;
-
-  const uploadsIndex = filePath.lastIndexOf("uploads");
-  if (uploadsIndex === -1) {
-    return filePath.replace(/\\/g, "/");
-  }
-
-  return `/${filePath.slice(uploadsIndex).replace(/\\/g, "/")}`;
-};
+const normalizePhone = (phone?: string) =>
+  String(phone || "")
+    .replace(/\D/g, "")
+    .slice(-10);
 
 export const downloadStudentTemplate = async (req: Request, res: Response) => {
   try {
@@ -110,6 +105,7 @@ export const getStudentsByClass = async (req: any, res: Response) => {
     const query: any = {
       schoolId,
       classId,
+      status: "active",
     };
 
     if (sectionId) query.sectionId = sectionId;
@@ -153,14 +149,43 @@ export const getStudentsByClass = async (req: any, res: Response) => {
 export const updateStudent = async (req: any, res: Response) => {
   try {
     const schoolId = req.user.schoolId;
+    const role = String(req.user?.role || "").toUpperCase();
     const { id } = req.params;
 
     const payload = {
       ...req.body,
     };
 
-    if (req.file?.path) {
-      payload.profileImage = normalizeUploadPath(req.file.path);
+    if (req.file) {
+      payload.profileImage = await uploadBufferToCloudinary(
+        req.file,
+        "students",
+      );
+    }
+
+    if (role === "PARENT") {
+      const normalizedPhone = normalizePhone(req.user?.phone);
+      const student = await StudentModel.findOne({
+        _id: id,
+        schoolId,
+        parentPhone: { $in: [normalizedPhone, `0${normalizedPhone}`] },
+      })
+        .select("_id")
+        .lean();
+
+      if (!student) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied",
+        });
+      }
+
+      const allowedParentFields = new Set(["profileImage"]);
+      Object.keys(payload).forEach((key) => {
+        if (!allowedParentFields.has(key)) {
+          delete payload[key];
+        }
+      });
     }
 
     const student = await service.updateStudentService(schoolId, id, payload);
@@ -224,6 +249,41 @@ export const getAllStudentsByClass = async (req: any, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+export const updateStudentStatus = async (req: any, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["active", "disabled"].includes(String(status))) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be active or disabled",
+      });
+    }
+
+    const student = await service.updateStudentStatusService(
+      schoolId,
+      id,
+      status,
+    );
+
+    return res.json({
+      success: true,
+      message:
+        status === "active"
+          ? "Student account enabled successfully"
+          : "Student account disabled successfully",
+      data: student,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
     });
   }
 };

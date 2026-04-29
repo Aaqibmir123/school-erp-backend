@@ -63,15 +63,4 @@ teacherAssignmentSchema.index(
   { unique: true },
 );
 
-/* Prevent multiple teachers for same subject in same class */
-
-teacherAssignmentSchema.index(
-  {
-    classId: 1,
-    subjectId: 1,
-    academicYearId: 1,
-  },
-  { unique: true },
-);
-
 export default mongoose.model("TeacherAssignment", teacherAssignmentSchema);

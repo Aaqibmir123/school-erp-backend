@@ -8,9 +8,7 @@ import {
   checkUserSchema,
   firebaseLoginSchema,
   loginSchema,
-  sendOtpSchema,
   setPasswordSchema,
-  verifyOtpSchema,
 } from "./auth.validation";
 
 const router = Router();
@@ -30,8 +28,6 @@ const refreshRateLimit = createRateLimiter({
 });
 
 router.post("/check-user", authRateLimit, validate(checkUserSchema), controller.checkUser);
-router.post("/send-otp", authRateLimit, validate(sendOtpSchema), controller.sendOtp);
-router.post("/verify-otp", authRateLimit, validate(verifyOtpSchema), controller.verifyOtp);
 router.post("/login", authRateLimit, validate(loginSchema), controller.login);
 router.post("/refresh", refreshRateLimit, controller.refreshSession);
 router.post("/logout", controller.logout);

@@ -61,6 +61,7 @@ export const getTeacherAssignments = async (req: Request, res: Response) => {
     return res.json({
       success: true,
       data,
+      total: data.length,
     });
   } catch (error: any) {
     return res.status(500).json({

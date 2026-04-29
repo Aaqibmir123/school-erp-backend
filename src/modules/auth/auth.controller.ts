@@ -1,12 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 
-import { successResponse } from "../../utils/apiResponse";
 import { ApiError } from "../../utils/apiError";
+import { successResponse } from "../../utils/apiResponse";
 import * as authService from "./auth.service";
 
 const REFRESH_COOKIE_NAME = "school_erp_refresh_token";
 
-const serializeCookie = (name: string, value: string, maxAgeSeconds: number) => {
+const serializeCookie = (
+  name: string,
+  value: string,
+  maxAgeSeconds: number,
+) => {
   const isProduction = process.env.NODE_ENV === "production";
   const sameSite = isProduction ? "None" : "Lax";
   const secure = isProduction ? "; Secure" : "";
@@ -33,10 +37,7 @@ const setRefreshCookie = (res: Response, refreshToken?: string) => {
 };
 
 const clearRefreshCookie = (res: Response) => {
-  res.setHeader(
-    "Set-Cookie",
-    serializeCookie(REFRESH_COOKIE_NAME, "", 0),
-  );
+  res.setHeader("Set-Cookie", serializeCookie(REFRESH_COOKIE_NAME, "", 0));
 };
 
 const readRefreshToken = (req: Request) => {
@@ -65,33 +66,6 @@ export const checkUser = async (
   }
 };
 
-/* ================= SEND OTP ================= */
-export const sendOtp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const data = await authService.sendOtp(req.body.phone);
-    return successResponse(res, data, "OTP sent");
-  } catch (error) {
-    return next(error);
-  }
-};
-
-/* ================= VERIFY OTP ================= */
-export const verifyOtp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const data = await authService.verifyOtp(req.body.phone, req.body.otp);
-    return successResponse(res, data, "Login successful");
-  } catch (error) {
-    return next(error);
-  }
-};
 
 /* ================= PASSWORD LOGIN ================= */
 export const login = async (
@@ -115,7 +89,10 @@ export const setPassword = async (
   next: NextFunction,
 ) => {
   try {
-    const data = await authService.setPassword(req.body.token, req.body.password);
+    const data = await authService.setPassword(
+      req.body.token,
+      req.body.password,
+    );
     return successResponse(res, data, "Password updated");
   } catch (error) {
     return next(error);
@@ -185,3 +162,4 @@ export const logout = async (
     return next(error);
   }
 };
+

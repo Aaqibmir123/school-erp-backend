@@ -58,7 +58,7 @@ const TeacherSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["active", "inactive"],
+      enum: ["active", "inactive", "disabled"],
       default: "active",
     },
 

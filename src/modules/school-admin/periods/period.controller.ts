@@ -52,6 +52,47 @@ export const getPeriods = async (req: Request, res: Response) => {
   }
 };
 
+export const updatePeriod = async (req: Request, res: Response) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { id } = req.params;
+    const { startTime, endTime, type } = req.body;
+
+    if (!startTime || !endTime) {
+      return res.status(400).json({
+        message: "startTime and endTime required",
+      });
+    }
+
+    const toMinutes = (t: string) => {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    if (toMinutes(endTime) <= toMinutes(startTime)) {
+      return res.status(400).json({
+        message: "Invalid time range",
+      });
+    }
+
+    const period = await periodService.updatePeriod(id, schoolId, {
+      startTime,
+      endTime,
+      type,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Updated",
+      period,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: error.message || "Failed",
+    });
+  }
+};
+
 export const deletePeriod = async (req: Request, res: Response) => {
   try {
     const schoolId = req.user.schoolId;

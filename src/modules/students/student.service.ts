@@ -19,6 +19,7 @@ const getStudentOrThrow = async (schoolId: string, studentId: string) => {
   const student = await StudentModel.findOne({
     _id: studentId,
     schoolId,
+    status: "active",
   })
     .populate("classId", "name")
     .populate("sectionId", "name")
@@ -202,7 +203,7 @@ export const getStudentTodayTimetable = async (user: any) => {
   let student: any = null;
 
   if (role === "STUDENT") {
-    student = await StudentModel.findOne({ userId: id, schoolId })
+    student = await StudentModel.findOne({ userId: id, schoolId, status: "active" })
       .populate("classId", "name")
       .populate("sectionId", "name")
       .lean();
@@ -212,6 +213,7 @@ export const getStudentTodayTimetable = async (user: any) => {
     student = await StudentModel.findOne({
       parentPhone: { $in: getPhoneVariants(phone) },
       schoolId,
+      status: "active",
     })
       .populate("classId", "name")
       .populate("sectionId", "name")
@@ -257,7 +259,7 @@ export const getStudentWeeklyTimetable = async (user: any) => {
   let student: any = null;
 
   if (role === "STUDENT") {
-    student = await StudentModel.findOne({ userId: id, schoolId })
+    student = await StudentModel.findOne({ userId: id, schoolId, status: "active" })
       .populate("classId", "name")
       .populate("sectionId", "name")
       .lean();
@@ -267,6 +269,7 @@ export const getStudentWeeklyTimetable = async (user: any) => {
     student = await StudentModel.findOne({
       parentPhone: { $in: getPhoneVariants(phone) },
       schoolId,
+      status: "active",
     })
       .populate("classId", "name")
       .populate("sectionId", "name")

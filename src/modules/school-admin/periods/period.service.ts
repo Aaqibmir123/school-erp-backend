@@ -27,6 +27,48 @@ export const createPeriod = async (schoolId: string, data: any) => {
     schoolId,
   });
 };
+
+export const updatePeriod = async (id: string, schoolId: string, data: any) => {
+  const existing = await PeriodModel.find({ schoolId, _id: { $ne: id } });
+
+  const toMinutes = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const newStart = toMinutes(data.startTime);
+  const newEnd = toMinutes(data.endTime);
+
+  const isOverlap = existing.some((p) => {
+    const pStart = toMinutes(p.startTime);
+    const pEnd = toMinutes(p.endTime);
+
+    return newStart < pEnd && newEnd > pStart;
+  });
+
+  if (isOverlap) {
+    throw new Error("Time overlaps with existing slot");
+  }
+
+  const updated = await PeriodModel.findOneAndUpdate(
+    { _id: id, schoolId },
+    {
+      $set: {
+        startTime: data.startTime,
+        endTime: data.endTime,
+        type: data.type,
+      },
+    },
+    { new: true },
+  );
+
+  if (!updated) {
+    throw new Error("Period not found");
+  }
+
+  return updated;
+};
+
 export const getPeriods = async (schoolId: string) => {
   return PeriodModel.find({ schoolId }).sort({ periodNumber: 1 });
 };
