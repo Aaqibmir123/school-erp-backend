@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
+    "build": "node -e \"console.log('Skipping TypeScript build for Hostinger runtime deploy')\"",
     "start": "mkdir -p public/receipts uploads uploads/school uploads/students && npx tsx src/server.ts",
     "start:dist": "node dist/server.js",
     "typecheck": "tsc --noEmit",

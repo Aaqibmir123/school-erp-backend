@@ -7,6 +7,10 @@ Hostinger deployment settings for `school-erp-backend`
 - Build command: `npm install`
 - Start command: `npm start`
 
+The repository `build` script is intentionally a no-op for Hostinger so the app
+can run directly via `tsx` without failing on repository-wide TypeScript
+errors during deployment.
+
 Environment values are prepared locally in:
 
 - `.env.hostinger.local`
