@@ -6,6 +6,7 @@ Hostinger deployment settings for `school-erp-backend`
 - Root directory: `/`
 - Build command: `npm install`
 - Start command: `npm start`
+- Entry file: `hostinger-start.cjs`
 
 The repository `build` script is intentionally a no-op for Hostinger so the app
 can run directly via `tsx` without failing on repository-wide TypeScript
