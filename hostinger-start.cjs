@@ -1,6 +1,5 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { register } = require("tsx/cjs/api");
 
 const ensureDir = (relativePath) => {
   fs.mkdirSync(path.join(process.cwd(), relativePath), { recursive: true });
@@ -37,8 +36,8 @@ try {
     throw new Error(`Server entry not found: ${serverEntry}`);
   }
 
-  register();
-  log("tsx register loaded");
+  require("ts-node/register/transpile-only");
+  log("ts-node transpile-only register loaded");
 
   require("./src/server.ts");
   log("src/server.ts loaded");
