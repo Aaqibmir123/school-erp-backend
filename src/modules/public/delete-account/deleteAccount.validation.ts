@@ -10,7 +10,8 @@ export const createDeleteAccountRequestSchema = z.object({
   fullName: z.string().trim().min(3, "Full name is required"),
   registeredPhoneNumber: phoneSchema,
   schoolName: z.string().trim().min(3, "School name is required"),
-  role: z.string().trim().min(2, "Role is required"),
+  role: z.enum(["Parent", "Teacher", "Student", "Staff", "Other"], {
+    errorMap: () => ({ message: "Role is required" }),
+  }),
   reason: z.string().trim().min(10, "Please share a short reason"),
 });
-
