@@ -23,7 +23,8 @@ export const createDeleteAccountRequest = async (
     return successResponse(
       res,
       {
-        requestId: payload._id.toString(),
+        requestId: payload.requestId,
+        storage: payload.storage,
       },
       "Delete account request submitted successfully",
       201,
@@ -32,4 +33,3 @@ export const createDeleteAccountRequest = async (
     return next(error);
   }
 };
-
