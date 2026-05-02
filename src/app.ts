@@ -1,6 +1,9 @@
+import compression from "compression";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import "module-alias/register";
+import morgan from "morgan";
 import path from "path";
 
 import { env } from "./config/env";
@@ -20,6 +23,7 @@ import createExamsRoutesByAdmin from "./modules/school-admin/exams/exam.routes";
 import feeAdminRoutes from "./modules/school-admin/Fee/fee.routes";
 import periodRoutes from "./modules/school-admin/periods/period.routes";
 import receiptRoutes from "./modules/school-admin/receipt/receipt.routes";
+import admitCardRoutes from "./modules/school-admin/admit-cards/admitCard.routes";
 import examScheduleRoutesByAdmin from "./modules/school-admin/schedule/schedule.routes";
 import schoolRoutes from "./modules/school-admin/school/school.routes";
 import sectionRoutes from "./modules/school-admin/sections/sections.routes";
@@ -38,13 +42,16 @@ import teacherTimeTablesRoutes from "./teachers/timetable/teacher.routes";
 
 /* ================= STUDENT ================= */
 import studentSideRoutes from "./modules/students/student.route";
+import studentAdmitCardRoutes from "./modules/students/admitCard.routes";
 
 /* ================= ACADEMIC ================= */
 import attendanceRoute from "./modules/attendance/attendance.routes";
 import teacherAttendanceRoutes from "./modules/attendance/teacherAttendance.routes";
 import createExamRoutes from "./modules/exam/exam.routes";
 import homeworkRoutes from "./modules/homework/homework.route";
+import noticeRoutes from "./modules/notice/notice.routes";
 import teacherResultRoutes from "./modules/result/result.routes";
+import deleteAccountRoutes from "./modules/public/delete-account/deleteAccount.routes";
 
 const app = express();
 
@@ -60,6 +67,7 @@ const isAllowedOrigin = (origin: string) =>
 /* ================= MIDDLEWARE ================= */
 
 app.set("trust proxy", 1);
+app.use(helmet());
 app.use(
   cors({
     credentials: true,
@@ -78,6 +86,13 @@ app.use(
   }),
 );
 
+app.use(compression());
+app.use(
+  morgan(env.NODE_ENV === "production" ? "combined" : "dev", {
+    skip: (req) => req.path === "/health",
+  }),
+);
+
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
@@ -93,6 +108,14 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use(
   "/receipts",
   express.static(path.join(process.cwd(), "public/receipts")),
+);
+app.use(
+  "/marks-cards",
+  express.static(path.join(process.cwd(), "public/marks-cards")),
+);
+app.use(
+  "/admit-cards",
+  express.static(path.join(process.cwd(), "public/admit-cards")),
 );
 
 /* ================= ROUTES ================= */
@@ -127,6 +150,7 @@ app.use("/api/school-admin/transport", transportRoutes);
 app.use("/api/school", schoolRoutes);
 app.use("/api/school-admin/fee", feeAdminRoutes);
 app.use("/api/school-admin/fees", receiptRoutes);
+app.use("/api/school-admin/admit-cards", admitCardRoutes);
 
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/teacher", teacherTimeTablesRoutes);
@@ -134,12 +158,15 @@ app.use("/api/teacher/marks", midTermMarksRoutes);
 app.use("/api/teacher/attendance", midTermAttendanceRoutes);
 
 app.use("/api/student", studentSideRoutes);
+app.use("/api/student/admit-cards", studentAdmitCardRoutes);
 
 app.use("/api/attendance", attendanceRoute);
 app.use("/api/attendance", teacherAttendanceRoutes);
 app.use("/api/homework", homeworkRoutes);
+app.use("/api/school-admin/notices", noticeRoutes);
 app.use("/api/exam", createExamRoutes);
 app.use("/api/result", teacherResultRoutes);
+app.use("/api/public", deleteAccountRoutes);
 
 /* ================= ERROR HANDLER ================= */
 app.use(errorHandler);
