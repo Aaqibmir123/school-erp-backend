@@ -23,7 +23,6 @@ import createExamsRoutesByAdmin from "./modules/school-admin/exams/exam.routes";
 import feeAdminRoutes from "./modules/school-admin/Fee/fee.routes";
 import periodRoutes from "./modules/school-admin/periods/period.routes";
 import receiptRoutes from "./modules/school-admin/receipt/receipt.routes";
-import admitCardRoutes from "./modules/school-admin/admit-cards/admitCard.routes";
 import examScheduleRoutesByAdmin from "./modules/school-admin/schedule/schedule.routes";
 import schoolRoutes from "./modules/school-admin/school/school.routes";
 import sectionRoutes from "./modules/school-admin/sections/sections.routes";
@@ -42,7 +41,6 @@ import teacherTimeTablesRoutes from "./teachers/timetable/teacher.routes";
 
 /* ================= STUDENT ================= */
 import studentSideRoutes from "./modules/students/student.route";
-import studentAdmitCardRoutes from "./modules/students/admitCard.routes";
 
 /* ================= ACADEMIC ================= */
 import attendanceRoute from "./modules/attendance/attendance.routes";
@@ -156,7 +154,6 @@ app.use("/api/school-admin/transport", transportRoutes);
 app.use("/api/school", schoolRoutes);
 app.use("/api/school-admin/fee", feeAdminRoutes);
 app.use("/api/school-admin/fees", receiptRoutes);
-app.use("/api/school-admin/admit-cards", admitCardRoutes);
 
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/teacher", teacherTimeTablesRoutes);
@@ -164,7 +161,6 @@ app.use("/api/teacher/marks", midTermMarksRoutes);
 app.use("/api/teacher/attendance", midTermAttendanceRoutes);
 
 app.use("/api/student", studentSideRoutes);
-app.use("/api/student/admit-cards", studentAdmitCardRoutes);
 
 app.use("/api/attendance", attendanceRoute);
 app.use("/api/attendance", teacherAttendanceRoutes);

@@ -37,7 +37,7 @@ const envSchema = z.object({
   REVIEWER_PHONE: z.string().optional().default(""),
   SUPER_ADMIN_PASSWORD: z.string().min(1, "SUPER_ADMIN_PASSWORD is required"),
   SUPER_ADMIN_PHONE: z.string().min(1, "SUPER_ADMIN_PHONE is required"),
-  TWO_FACTOR_API_KEY: z.string().min(1, "TWO_FACTOR_API_KEY is required"),
+  TWO_FACTOR_API_KEY: z.string().optional().default(""),
   TWO_FACTOR_BASE_URL: z
     .string()
     .url()
