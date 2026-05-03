@@ -22,7 +22,8 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().optional().default(""),
   FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional().default(""),
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
-  MONGO_URI: z.string().min(1, "MONGO_URI is required"),
+  MONGO_URI: z.string().optional().default(""),
+  MONGODB_URI: z.string().optional().default(""),
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
@@ -30,7 +31,7 @@ const envSchema = z.object({
   OTP_RESEND_SECONDS: z.coerce.number().int().positive().default(60),
   OTP_TTL_SECONDS: z.coerce.number().int().positive().default(300),
   PHONE_AUTH_PROVIDER: z.enum(["firebase"]).default("firebase"),
-  PORT: z.coerce.number().default(5000),
+  PORT: z.coerce.number().default(3000),
   REFRESH_JWT_SECRET: z.string().min(1, "REFRESH_JWT_SECRET is required"),
   REVIEWER_OTP: z.string().optional().default(""),
   REVIEWER_PHONE: z.string().optional().default(""),
@@ -71,7 +72,12 @@ export const env = {
   REVIEWER_OTP: cleanSecretValue(parsedEnv.REVIEWER_OTP),
   REVIEWER_PHONE: cleanSecretValue(parsedEnv.REVIEWER_PHONE),
   TWO_FACTOR_API_KEY: cleanSecretValue(parsedEnv.TWO_FACTOR_API_KEY),
+  MONGO_URI: cleanSecretValue(parsedEnv.MONGO_URI || parsedEnv.MONGODB_URI),
   clientOrigins: parsedEnv.CLIENT_URLS.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
 };
+
+if (!env.MONGO_URI) {
+  throw new Error("MONGO_URI or MONGODB_URI is required");
+}
