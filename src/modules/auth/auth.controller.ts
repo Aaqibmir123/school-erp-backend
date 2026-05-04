@@ -1,12 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 
-import { successResponse } from "../../utils/apiResponse";
 import { ApiError } from "../../utils/apiError";
+import { successResponse } from "../../utils/apiResponse";
 import * as authService from "./auth.service";
 
 const REFRESH_COOKIE_NAME = "school_erp_refresh_token";
 
-const serializeCookie = (name: string, value: string, maxAgeSeconds: number) => {
+const serializeCookie = (
+  name: string,
+  value: string,
+  maxAgeSeconds: number,
+) => {
   const isProduction = process.env.NODE_ENV === "production";
   const sameSite = isProduction ? "None" : "Lax";
   const secure = isProduction ? "; Secure" : "";
@@ -33,10 +37,7 @@ const setRefreshCookie = (res: Response, refreshToken?: string) => {
 };
 
 const clearRefreshCookie = (res: Response) => {
-  res.setHeader(
-    "Set-Cookie",
-    serializeCookie(REFRESH_COOKIE_NAME, "", 0),
-  );
+  res.setHeader("Set-Cookie", serializeCookie(REFRESH_COOKIE_NAME, "", 0));
 };
 
 const readRefreshToken = (req: Request) => {
@@ -86,7 +87,12 @@ export const verifyOtp = async (
   next: NextFunction,
 ) => {
   try {
-    const data = await authService.verifyOtp(req.body.phone, req.body.otp);
+    const data = await authService.verifyOtp(
+      req.body.phone,
+      req.body.otp,
+      req.body.sessionId,
+    );
+    setRefreshCookie(res, (data as any).refreshToken);
     return successResponse(res, data, "Login successful");
   } catch (error) {
     return next(error);
@@ -108,20 +114,6 @@ export const login = async (
   }
 };
 
-/* ================= SET PASSWORD ================= */
-export const setPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const data = await authService.setPassword(req.body.token, req.body.password);
-    return successResponse(res, data, "Password updated");
-  } catch (error) {
-    return next(error);
-  }
-};
-
 /* ================= APPLY SCHOOL ================= */
 export const applySchool = async (
   req: Request,
@@ -131,21 +123,6 @@ export const applySchool = async (
   try {
     const data = await authService.applySchool(req.body);
     return successResponse(res, data, "Application submitted", 201);
-  } catch (error) {
-    return next(error);
-  }
-};
-
-/* ================= FIREBASE LOGIN ================= */
-export const firebaseLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const data = await authService.firebaseLoginService(req.body.idToken);
-    setRefreshCookie(res, (data as any).refreshToken);
-    return successResponse(res, data, "Login successful");
   } catch (error) {
     return next(error);
   }

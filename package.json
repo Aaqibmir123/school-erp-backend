@@ -7,19 +7,26 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:teacher-assignments": "node scripts/fix-teacher-assignment-index.js",
+    "seed:super-admin": "node scripts/seedSuperAdmin.js"
   },
   "dependencies": {
+    "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
+    "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dayjs": "^1.11.20",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "firebase-admin": "^13.8.0",
+    "express-rate-limit": "^8.4.1",
     "handlebars": "^4.7.9",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "module-alias": "^2.3.4",
     "mongoose": "^9.3.0",
+    "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.2",
     "puppeteer": "^24.41.0",
@@ -39,3 +46,4 @@
     "typescript": "^5.9.3"
   }
 }
+

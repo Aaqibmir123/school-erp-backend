@@ -1,7 +1,6 @@
-import { setPasswordTemplate } from "../../templates/setPasswordTemplate";
+import { approvalNoticeTemplate } from "../../templates/approvalNoticeTemplate";
 import { env } from "../../config/env";
 import { sendEmail } from "../../utils/email";
-import { generateSetPasswordToken } from "../../utils/jwt";
 import { School } from "../school/school.model";
 import { User, UserRole } from "../user/user.model";
 
@@ -14,13 +13,17 @@ export const getAllSchools = async () => {
 };
 
 export const approveSchool = async (schoolId: string) => {
-  const school = await School.findById(schoolId);
+  const school = await School.findById(schoolId).select("+passwordHash");
 
   if (!school) {
     throw new Error("School not found");
   }
 
-  /* CHECK IF USER ALREADY EXISTS */
+  if (!school.passwordHash) {
+    throw new Error(
+      "This application has no password on file. Please submit a new application with a password.",
+    );
+  }
 
   const existingUser = await User.findOne({
     email: school.email,
@@ -30,37 +33,34 @@ export const approveSchool = async (schoolId: string) => {
     throw new Error("Admin user already exists for this email");
   }
 
-  /* CREATE ADMIN USER */
-
-  const user = await User.create({
-    name: school.principalName,
+  await User.create({
     email: school.email,
+    isFirstLogin: false,
+    name: school.principalName,
+    password: school.passwordHash,
     phone: school.phone,
     role: UserRole.SCHOOL_ADMIN,
     schoolId: school._id,
   });
 
-  /* GENERATE TOKEN */
-
-  const token = generateSetPasswordToken(user._id.toString());
-
-  // WHY: The approval email must point to the deployed web app so school
-  // admins can open the password setup page from any device.
-  const baseUrl = env.WEB_APP_URL || "https://aaqib-school-erp-admin.vercel.app";
-  const link = `${baseUrl.replace(/\/$/, "")}/set-password?token=${token}`;
-
-  /* SEND EMAIL */
-  if (!user.email) {
-    throw new Error("School admin email is missing");
-  }
-
-  await sendEmail(user.email, "Set Your Password", setPasswordTemplate(link));
-
-  /* UPDATE SCHOOL STATUS AFTER EMAIL SUCCESS */
-
   school.status = "APPROVED";
-
   await school.save();
+
+  const baseUrl =
+    env.WEB_APP_URL || "https://aaqib-school-erp-admin.vercel.app";
+  const loginUrl = `${baseUrl.replace(/\/$/, "")}/`;
+
+  if (school.email) {
+    try {
+      await sendEmail(
+        school.email,
+        "School ERP — Application approved",
+        approvalNoticeTemplate(loginUrl),
+      );
+    } catch (err) {
+      console.warn("[approveSchool] Optional approval email failed:", err);
+    }
+  }
 
   return school;
 };

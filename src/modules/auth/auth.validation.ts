@@ -15,11 +15,9 @@ export const sendOtpSchema = z.object({
 });
 
 export const verifyOtpSchema = z.object({
-  otp: z
-    .string()
-    .trim()
-    .regex(/^\d{6}$/, "Enter a valid 6-digit OTP"),
+  otp: z.string().trim().regex(/^\d{6}$/, "Enter a valid 6-digit OTP"),
   phone: phoneSchema,
+  sessionId: z.string().trim().min(6, "Session ID is required"),
 });
 
 export const loginSchema = z
@@ -29,8 +27,6 @@ export const loginSchema = z
     phone: z.string().trim().optional(),
   })
   .superRefine((value, ctx) => {
-    // WHY: The admin web currently uses one field for both email and phone, so
-    // we only require an identifier instead of forcing a strict email format.
     if (!value.email && !value.phone) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -40,20 +36,23 @@ export const loginSchema = z
     }
   });
 
-export const setPasswordSchema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  token: z.string().min(10, "Token is required"),
-});
-
-export const applySchoolSchema = z.object({
-  address: z.string().trim().min(5, "Address is required"),
-  email: z.string().trim().email("Enter a valid email"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  phone: phoneSchema,
-  principalName: z.string().trim().min(3, "Principal name is required"),
-  schoolName: z.string().trim().min(3, "School name is required"),
-});
-
-export const firebaseLoginSchema = z.object({
-  idToken: z.string().min(10, "idToken required"),
-});
+export const applySchoolSchema = z
+  .object({
+    address: z.string().trim().min(5, "Address is required"),
+    email: z.string().trim().email("Enter a valid email"),
+    confirmPassword: z
+      .string()
+      .min(8, "Confirm password must be at least 8 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    phone: phoneSchema,
+    principalName: z.string().trim().min(3, "Principal name is required"),
+    schoolName: z.string().trim().min(3, "School name is required"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .transform(({ confirmPassword: _confirm, password, ...rest }) => ({
+    ...rest,
+    password,
+  }));
