@@ -20,21 +20,10 @@ export const verifyOtpSchema = z.object({
   sessionId: z.string().trim().min(6, "Session ID is required"),
 });
 
-export const loginSchema = z
-  .object({
-    email: z.string().trim().optional(),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    phone: z.string().trim().optional(),
-  })
-  .superRefine((value, ctx) => {
-    if (!value.email && !value.phone) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Email or phone is required",
-        path: ["email"],
-      });
-    }
-  });
+export const loginSchema = z.object({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  phone: phoneSchema,
+});
 
 export const applySchoolSchema = z
   .object({

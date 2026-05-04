@@ -387,42 +387,37 @@ export const sendOtp = async (phoneInput: string) => {
 
 /* ================= PASSWORD LOGIN ================= */
 export const login = async (data: LoginDTO) => {
-  const identifier = data.email?.trim() || normalizePhone(data.phone || "");
-  const normalizedIdentifier = identifier.includes("@")
-    ? identifier.toLowerCase()
-    : identifier;
+  const normalizedPhone = normalizePhone(data.phone || "");
 
-  /* 🔥 SUPER ADMIN LOGIN FLOW */
-  if (normalizedIdentifier === SUPER_ADMIN_PHONE) {
-    let superAdmin = await User.findOne({ phone: SUPER_ADMIN_PHONE });
+  if (!normalizedPhone) {
+    throw new ApiError(400, "Phone is required");
+  }
 
-    // 👉 Create if not exists
-    if (!superAdmin) {
-      const hashedPassword = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
+  /* 🔥 SAFE SUPER-ADMIN BOOTSTRAP (one-time only) */
+  const superAdminCount = await User.countDocuments({ role: UserRole.SUPER_ADMIN });
+  if (superAdminCount === 0) {
+    const shouldBootstrap =
+      normalizedPhone === SUPER_ADMIN_PHONE && data.password === SUPER_ADMIN_PASSWORD;
 
-      superAdmin = await User.create({
-        phone: SUPER_ADMIN_PHONE,
-        password: hashedPassword,
-        role: UserRole.SUPER_ADMIN,
-        isFirstLogin: false,
-      });
+    if (!shouldBootstrap) {
+      throw new ApiError(401, "Invalid credentials");
     }
 
-    const match = await bcrypt.compare(
-      data.password,
-      superAdmin.password || "",
-    );
+    const hashedPassword = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
+    const seededAdmin = await User.create({
+      isFirstLogin: false,
+      password: hashedPassword,
+      phone: SUPER_ADMIN_PHONE,
+      role: UserRole.SUPER_ADMIN,
+      status: "active",
+    });
 
-    if (!match) {
-      throw new ApiError(401, "Invalid password");
-    }
-
-    return buildAuthResponse(superAdmin);
+    return buildAuthResponse(seededAdmin);
   }
 
   /* 🔹 NORMAL USERS */
   const user = await User.findOne({
-    $or: [{ email: normalizedIdentifier }, { phone: normalizedIdentifier }],
+    phone: normalizedPhone,
   });
 
   if (!user) throw new ApiError(404, "User not found");
