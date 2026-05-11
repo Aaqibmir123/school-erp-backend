@@ -551,7 +551,8 @@ export const verifyOtp = async (
     }
 
     if (reviewerRecord.verifiedAt) {
-      throw new ApiError(410, "OTP already used");
+      const reviewer = await ensureReviewerAccount(phone);
+      return buildAuthResponse(reviewer.user);
     }
 
     if (reviewerRecord.expiresAt.getTime() <= Date.now()) {
