@@ -106,11 +106,15 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
   ).lean();
 
   /* ---------- USER ---------- */
+  const reviewerEmail = `play-reviewer-${phone}@local.invalid`;
   const user = await User.findOneAndUpdate(
-    { phone, role: UserRole.REVIEWER },
+    {
+      role: UserRole.REVIEWER,
+      $or: [{ phone }, { email: reviewerEmail }],
+    },
     {
       $set: {
-        email: `play-reviewer-${phone}@local.invalid`,
+        email: reviewerEmail,
         isFirstLogin: false,
         name: "Google Play Reviewer",
         phone,
@@ -124,10 +128,13 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
 
   /* ---------- TEACHER ---------- */
   const teacher = await TeacherModel.findOneAndUpdate(
-    { userId: user._id },
+    {
+      schoolId: school._id,
+      $or: [{ phone }, { email: reviewerEmail }, { userId: user._id }],
+    },
     {
       $set: {
-        email: `play-reviewer-${phone}@local.invalid`,
+        email: reviewerEmail,
         firstName: "Play",
         lastName: "Reviewer",
         phone,
@@ -141,7 +148,10 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
 
   /* ---------- STUDENT ---------- */
   const student = await StudentModel.findOneAndUpdate(
-    { parentUserId: user._id, schoolId: school._id },
+    {
+      schoolId: school._id,
+      $or: [{ parentPhone: phone }, { parentUserId: user._id }],
+    },
     {
       $set: {
         classId: classDoc._id,
