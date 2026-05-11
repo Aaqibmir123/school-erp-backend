@@ -140,7 +140,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/files", documentRoutes);
+// File-serving routes are temporarily disabled until startup stability is confirmed.
 
 app.use("/api/school-admin", schoolAdminRoutes);
 app.use("/api/school-admin/classes", classRoutes);
