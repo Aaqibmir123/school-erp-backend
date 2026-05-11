@@ -1,5 +1,5 @@
-import path from "path";
-import multer from "multer";
+const path = require("path") as typeof import("path");
+const multer = require("multer") as typeof import("multer");
 
 const DEFAULT_FILE_SIZE_LIMIT = 5 * 1024 * 1024;
 
