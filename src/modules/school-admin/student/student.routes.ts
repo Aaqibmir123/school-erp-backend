@@ -1,18 +1,10 @@
 import { Router } from "express";
 import { authMiddleware } from "../../../middlewares/auth.middleware";
 import { roleMiddleware } from "../../../middlewares/role.middleware";
-import { uploadFile } from "../../../middlewares/upload.middleware";
 import * as bulkController from "./student.bulk.controller";
 import * as controller from "./student.controller";
 
 const router = Router();
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024,
-  },
-});
 
 router.post(
   "/",
@@ -36,7 +28,7 @@ router.post(
   "/bulk-preview",
   authMiddleware,
   roleMiddleware("SCHOOL_ADMIN"),
-  upload.single("file"),
+  // Upload parsing is temporarily disabled while Hostinger runtime issues are fixed.
   bulkController.previewStudentBulk,
 );
 
@@ -55,7 +47,7 @@ router.put(
   "/:id",
   authMiddleware,
   roleMiddleware("SCHOOL_ADMIN", "PARENT"),
-  uploadFile("students").single("profileImage"),
+  // Profile image upload is temporarily disabled while we stabilize deployment.
   controller.updateStudent,
 );
 router.patch(

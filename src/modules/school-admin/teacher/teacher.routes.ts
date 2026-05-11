@@ -2,7 +2,6 @@ import { Router } from "express";
 
 import { authMiddleware } from "../../../middlewares/auth.middleware";
 import { roleMiddleware } from "../../../middlewares/role.middleware";
-import { uploadFile } from "../../../middlewares/upload.middleware";
 import * as teacherAssignmentController from "./teacherAssignment.controller";
 import * as teacherController from "./teacher.controller";
 
@@ -12,7 +11,7 @@ router.post(
   "/teachers",
   authMiddleware,
   roleMiddleware("SCHOOL_ADMIN"),
-  uploadFile("teachers").single("profileImage"),
+  // Teacher profile image upload is temporarily disabled while deployment stabilizes.
   teacherController.createTeacher,
 );
 
@@ -69,7 +68,7 @@ router.put(
   "/teacher/me",
   authMiddleware,
   roleMiddleware("TEACHER"),
-  uploadFile("teachers").single("profileImage"),
+  // Teacher profile image upload is temporarily disabled while deployment stabilizes.
   teacherController.updateTeacherProfile,
 );
 
