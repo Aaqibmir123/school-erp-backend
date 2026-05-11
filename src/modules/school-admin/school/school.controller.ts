@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as schoolService from "./school.service";
 import { uploadBufferToCloudinary } from "../../../utils/cloudinary";
+import type { UploadedFile } from "../../../types/upload.types";
 
 export const getSchool = async (req: Request, res: Response) => {
   try {
@@ -107,9 +108,7 @@ export const saveSchool = async (req: Request, res: Response) => {
       });
     }
 
-    const files = req.files as {
-      [fieldname: string]: Express.Multer.File[];
-    };
+    const files = req.files as Record<string, UploadedFile[]>;
 
     const data: any = {
       schoolId: req?.user?.schoolId,

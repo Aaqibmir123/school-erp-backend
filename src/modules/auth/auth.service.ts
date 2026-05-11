@@ -218,14 +218,18 @@ const syncParentLoginUser = async (
   }
 
   await Promise.all(
-    activeStudents.map((student: any) =>
-      student.parentUserId &&
-      student.parentUserId.toString() === user._id.toString()
-        ? Promise.resolve()
-        : StudentModel.findByIdAndUpdate(student._id, {
-            parentUserId: user._id,
-          }),
-    ),
+    activeStudents.map(async (student: any) => {
+      if (
+        student.parentUserId &&
+        student.parentUserId.toString() === user._id.toString()
+      ) {
+        return;
+      }
+
+      await StudentModel.findByIdAndUpdate(student._id, {
+        parentUserId: user._id,
+      });
+    }),
   );
 
   return user;
