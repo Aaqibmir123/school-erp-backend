@@ -134,23 +134,25 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
   );
 
   /* ---------- USER ---------- */
-  const user = await saveOrReuse(
-    async () =>
-      User.findOne({
-        role: UserRole.REVIEWER,
-        $or: [{ phone }, { email: reviewerEmail }],
-      }).lean(),
-    async () =>
-      User.create({
-        email: reviewerEmail,
-        isFirstLogin: false,
-        name: "Google Play Reviewer",
-        phone,
-        role: UserRole.REVIEWER,
-        schoolId: school._id,
-        status: "active",
-      }),
-  );
+  const user =
+    (await User.findOne({ email: reviewerEmail }).lean()) ||
+    (await saveOrReuse(
+      async () =>
+        User.findOne({
+          role: UserRole.REVIEWER,
+          $or: [{ phone }, { email: reviewerEmail }],
+        }).lean(),
+      async () =>
+        User.create({
+          email: reviewerEmail,
+          isFirstLogin: false,
+          name: "Google Play Reviewer",
+          phone,
+          role: UserRole.REVIEWER,
+          schoolId: school._id,
+          status: "active",
+        }),
+    ));
 
   /* ---------- TEACHER ---------- */
   const teacher = await saveOrReuse(
