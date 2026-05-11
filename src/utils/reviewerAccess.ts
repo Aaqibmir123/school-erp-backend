@@ -134,7 +134,6 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
   );
 
   /* ---------- USER ---------- */
-  const reviewerEmail = `play-reviewer-${phone}@local.invalid`;
   const user = await saveOrReuse(
     async () =>
       User.findOne({
