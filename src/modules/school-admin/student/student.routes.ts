@@ -1,5 +1,4 @@
 import { Router } from "express";
-import multer from "multer";
 import { authMiddleware } from "../../../middlewares/auth.middleware";
 import { roleMiddleware } from "../../../middlewares/role.middleware";
 import { uploadFile } from "../../../middlewares/upload.middleware";

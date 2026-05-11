@@ -1,7 +1,9 @@
 import axios from "axios";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 import { ApplySchoolDTO, LoginDTO } from "../../../shared-types/auth.types";
+import { env } from "../../config/env";
 import {
   SUPER_ADMIN_PASSWORD,
   SUPER_ADMIN_PHONE,
@@ -12,7 +14,6 @@ import {
   generateRefreshToken,
   generateToken,
   verifyRefreshToken,
-  verifyToken,
 } from "../../utils/jwt";
 import { TeacherModel } from "../school-admin/teacher/teacher.model";
 import { School } from "../school/school.model";
@@ -23,6 +24,8 @@ import { getFirebaseAdmin } from "./firebase";
 type AuthUserResponse = {
   _id: string;
   email?: string;
+  accessModules?: ("parent" | "teacher")[];
+  image?: string;
   isFirstLogin: boolean;
   name?: string;
   phone?: string;
@@ -54,8 +57,13 @@ const buildFallbackEmail = (phone: string) =>
 
 const sanitizeAuthUser = (user: any): AuthUserResponse => ({
   _id: user._id.toString(),
+  accessModules:
+    String(user.role || "").toUpperCase() === UserRole.REVIEWER
+      ? [...REVIEWER_ACCESS_MODULES]
+      : undefined,
   email: user.email || undefined,
   isFirstLogin: Boolean(user.isFirstLogin),
+  image: user.image || undefined,
   name: user.name || undefined,
   phone: user.phone || undefined,
   role: user.role,
@@ -108,42 +116,40 @@ export const checkUser = async (phone: string) => {
 
 /* ================= PASSWORD LOGIN ================= */
 export const login = async (data: LoginDTO) => {
-  const identifier = data.email?.trim() || normalizePhone(data.phone || "");
-  const normalizedIdentifier = identifier.includes("@")
-    ? identifier.toLowerCase()
-    : identifier;
+  const normalizedPhone = normalizePhone(data.phone || "");
 
-  /* 🔥 SUPER ADMIN LOGIN FLOW */
-  if (normalizedIdentifier === SUPER_ADMIN_PHONE) {
-    let superAdmin = await User.findOne({ phone: SUPER_ADMIN_PHONE });
+  if (!normalizedPhone) {
+    throw new ApiError(400, "Phone is required");
+  }
 
-    // 👉 Create if not exists
-    if (!superAdmin) {
-      const hashedPassword = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
+  /* 🔥 SAFE SUPER-ADMIN BOOTSTRAP (one-time only) */
+  const superAdminCount = await User.countDocuments({
+    role: UserRole.SUPER_ADMIN,
+  });
+  if (superAdminCount === 0) {
+    const shouldBootstrap =
+      normalizedPhone === SUPER_ADMIN_PHONE &&
+      data.password === SUPER_ADMIN_PASSWORD;
 
-      superAdmin = await User.create({
-        phone: SUPER_ADMIN_PHONE,
-        password: hashedPassword,
-        role: UserRole.SUPER_ADMIN,
-        isFirstLogin: false,
-      });
+    if (!shouldBootstrap) {
+      throw new ApiError(401, "Invalid credentials");
     }
 
-    const match = await bcrypt.compare(
-      data.password,
-      superAdmin.password || "",
-    );
+    const hashedPassword = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
+    const seededAdmin = await User.create({
+      isFirstLogin: false,
+      password: hashedPassword,
+      phone: SUPER_ADMIN_PHONE,
+      role: UserRole.SUPER_ADMIN,
+      status: "active",
+    });
 
-    if (!match) {
-      throw new ApiError(401, "Invalid password");
-    }
-
-    return buildAuthResponse(superAdmin);
+    return buildAuthResponse(seededAdmin);
   }
 
   /* 🔹 NORMAL USERS */
   const user = await User.findOne({
-    $or: [{ email: normalizedIdentifier }, { phone: normalizedIdentifier }],
+    phone: normalizedPhone,
   });
 
   if (!user) throw new ApiError(404, "User not found");
@@ -158,16 +164,16 @@ export const login = async (data: LoginDTO) => {
   return buildAuthResponse(user);
 };
 
-/* ================= FIREBASE LOGIN ================= */
-export const firebaseLoginService = async (idToken: string) => {
-  try {
-    const admin = getFirebaseAdmin();
-    const decoded = await admin.auth().verifyIdToken(idToken);
+const resolveUserFromPhone = async (phoneInput: string) => {
+  const phone = normalizeLoginPhone(phoneInput);
+  const phoneVariants = getPhoneVariants(phone);
 
-    const rawPhone = decoded.phone_number;
-    if (!rawPhone) throw new ApiError(400, "Phone not found in token");
+  const teacher = await getTeacherByPhone(phoneVariants);
+  const activeStudents = await getActiveStudentsByParentPhone(phoneVariants);
 
-    const phone = normalizePhone(rawPhone);
+  let user = await User.findOne({
+    phone: { $in: phoneVariants },
+  });
 
     const teacher = await TeacherModel.findOne({ phone }).select(
       "_id firstName lastName email phone schoolId profileImage userId status",
@@ -220,6 +226,60 @@ export const firebaseLoginService = async (idToken: string) => {
   } catch (error: any) {
     throw new ApiError(400, error.message || "Firebase login failed");
   }
+
+  const record = await OtpModel.findOne({
+    phone,
+    sessionId,
+  }).select(
+    "_id attempts expiresAt lastSentAt maxAttempts otpHash provider providerResponse sessionId phone verifiedAt",
+  );
+
+  if (!record) {
+    throw new ApiError(404, "OTP session not found");
+  }
+
+  if (record.verifiedAt) {
+    throw new ApiError(410, "OTP already used");
+  }
+
+  if (record.expiresAt.getTime() <= Date.now()) {
+    throw new ApiError(410, "OTP expired");
+  }
+
+  if ((record.attempts || 0) >= (record.maxAttempts || 5)) {
+    throw new ApiError(429, "Too many OTP attempts. Please resend OTP.");
+  }
+
+  let verified = false;
+
+  if (record.provider === "2factor") {
+    verified = await verifyOtpVia2Factor(record.sessionId, otp);
+  }
+
+  if (!verified) {
+    verified = hashOtpCode(record.sessionId, otp) === record.otpHash;
+  }
+
+  const update: Record<string, unknown> = {
+    $inc: { attempts: 1 },
+  };
+
+  if (verified) {
+    update.$set = {
+      expiresAt: new Date(),
+      verifiedAt: new Date(),
+    };
+  }
+
+  await OtpModel.findByIdAndUpdate(record._id, update);
+
+  if (!verified) {
+    throw new ApiError(401, "Invalid OTP");
+  }
+
+  const user = await resolveUserFromPhone(phone);
+
+  return buildAuthResponse(user);
 };
 
 /* ================= COMMON AUTH BUILDER ================= */
@@ -230,29 +290,11 @@ const buildAuthResponse = async (user: any) => {
   const baseUser = sanitizeAuthUser(user);
   const access = await ensureActiveAccount(user);
 
-  if (user.role === UserRole.TEACHER) {
-    const teacher =
-      (await TeacherModel.findOne({ userId: user._id }).select(
-        "_id profileImage",
-      )) ||
-      (await TeacherModel.findOne({
-        phone: user.phone,
-        schoolId: user.schoolId,
-      }).select("_id profileImage userId"));
-
-    if (teacher) {
-      teacherId = teacher._id.toString();
-      teacherProfileImage = normalizeUploadUrl(teacher.profileImage);
-
-      if (
-        !teacher.userId ||
-        teacher.userId.toString() !== user._id.toString()
-      ) {
-        await TeacherModel.findByIdAndUpdate(teacher._id, {
-          userId: user._id,
-        });
-      }
-    }
+  if ((access as any)?.teacher) {
+    teacherId = (access as any).teacher._id.toString();
+    teacherProfileImage = normalizeUploadUrl(
+      (access as any).teacher.profileImage,
+    );
   }
 
   if (user.role === UserRole.PARENT) {
@@ -261,18 +303,28 @@ const buildAuthResponse = async (user: any) => {
 
   const token = generateToken({
     id: user._id.toString(),
+    accessModules:
+      String(user.role || "").toUpperCase() === UserRole.REVIEWER
+        ? [...REVIEWER_ACCESS_MODULES]
+        : undefined,
     phone: user.phone,
     role: user.role,
     schoolId: user.schoolId?.toString(),
     teacherId,
+    studentId: students[0]?._id?.toString?.(),
   });
 
   const refreshToken = generateRefreshToken({
     id: user._id.toString(),
+    accessModules:
+      String(user.role || "").toUpperCase() === UserRole.REVIEWER
+        ? [...REVIEWER_ACCESS_MODULES]
+        : undefined,
     phone: user.phone,
     role: user.role,
     schoolId: user.schoolId?.toString(),
     teacherId,
+    studentId: students[0]?._id?.toString?.(),
     type: "REFRESH",
   });
 
@@ -282,26 +334,13 @@ const buildAuthResponse = async (user: any) => {
     token,
     user: {
       ...baseUser,
+      accessModules:
+        String(user.role || "").toUpperCase() === UserRole.REVIEWER
+          ? [...REVIEWER_ACCESS_MODULES]
+          : baseUser.accessModules,
       image: teacherProfileImage || baseUser.image,
     },
   };
-};
-
-/* ================= SET PASSWORD ================= */
-export const setPassword = async (token: string, password: string) => {
-  const decoded = verifyToken(token) as { id: string };
-
-  const hashed = await bcrypt.hash(password, 10);
-
-  const user = await User.findByIdAndUpdate(
-    decoded.id,
-    { isFirstLogin: false, password: hashed },
-    { new: true },
-  );
-
-  if (!user) throw new ApiError(404, "User not found");
-
-  return sanitizeAuthUser(user);
 };
 
 /* ================= REFRESH SESSION ================= */
@@ -333,8 +372,15 @@ export const applySchool = async (data: ApplySchoolDTO) => {
     throw new ApiError(409, "Already applied");
   }
 
+  const passwordHash = await bcrypt.hash(data.password, 10);
+
   return School.create({
-    ...data,
+    address: data.address,
+    email: data.email,
+    passwordHash,
+    phone: data.phone,
+    principalName: data.principalName,
+    schoolName: data.schoolName,
     status: "PENDING",
   });
 };

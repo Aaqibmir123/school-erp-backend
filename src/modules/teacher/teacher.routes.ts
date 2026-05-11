@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { authMiddleware } from "../../middlewares/auth.middleware";
+import { roleMiddleware } from "../../middlewares/role.middleware";
 import {
   getMyClasses,
   getStudentProgress,
@@ -9,12 +10,17 @@ import {
 
 const router = Router();
 
-router.get("/my-classes", authMiddleware, getMyClasses);
+router.get("/my-classes", authMiddleware, roleMiddleware("TEACHER"), getMyClasses);
 
-router.get("/student-progress", authMiddleware, getStudentProgress);
+router.get(
+  "/student-progress",
+  authMiddleware,
+  roleMiddleware("TEACHER"),
+  getStudentProgress,
+);
 
-router.get("/by-class", authMiddleware, getStudentsByClassController);
+router.get("/by-class", authMiddleware, roleMiddleware("TEACHER"), getStudentsByClassController);
 
-router.get("/exams", authMiddleware, getTeacherExams);
+router.get("/exams", authMiddleware, roleMiddleware("TEACHER"), getTeacherExams);
 
 export default router;

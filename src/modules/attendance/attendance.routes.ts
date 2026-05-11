@@ -1,4 +1,5 @@
 import express from "express";
+import { roleMiddleware } from "../../middlewares/role.middleware";
 import {
   getAttendanceHistory,
   markAttendance,
@@ -17,15 +18,15 @@ router.use(authMiddleware);
 /* =========================
    👨‍🏫 TEACHER ROUTES
 ========================= */
-router.post("/", markAttendance);
-router.get("/class", getClassAttendance);
-router.get("/history", getAttendanceHistory);
+router.post("/", roleMiddleware("TEACHER"), markAttendance);
+router.get("/class", roleMiddleware("TEACHER", "SCHOOL_ADMIN"), getClassAttendance);
+router.get("/history", roleMiddleware("TEACHER", "SCHOOL_ADMIN"), getAttendanceHistory);
 
 /* =========================
    👨‍👩‍👧 STUDENT ROUTES
 ========================= */
-router.get("/student/today", getStudentTodayAttendance);
-router.get("/student", getStudentAttendance);
-router.get("/student/summary", getStudentSummary);
+router.get("/student/today", roleMiddleware("PARENT", "STUDENT"), getStudentTodayAttendance);
+router.get("/student", roleMiddleware("PARENT", "STUDENT"), getStudentAttendance);
+router.get("/student/summary", roleMiddleware("PARENT", "STUDENT"), getStudentSummary);
 
 export default router;

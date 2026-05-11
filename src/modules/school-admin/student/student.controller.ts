@@ -34,12 +34,15 @@ export const downloadStudentTemplate = async (req: Request, res: Response) => {
 
 export const createStudent = async (req: Request, res: Response) => {
   try {
-    const schoolId = req.user.schoolId;
-    const academicYearId = req.user.academicYearId;
+    const user = (req.user || {}) as any;
+    const schoolId = String(user.schoolId || "");
+    const academicYearId = user.academicYearId
+      ? String(user.academicYearId)
+      : undefined;
 
     const student = await service.createStudentService(
       schoolId,
-      academicYearId,
+      academicYearId || "",
       req.body,
     );
 
@@ -59,7 +62,7 @@ export const createStudent = async (req: Request, res: Response) => {
 
 export const getStudents = async (req: Request, res: Response) => {
   try {
-    const schoolId = req?.user?.schoolId;
+    const schoolId = String((req as any)?.user?.schoolId || "");
 
     const result = await service.getStudentsService(schoolId, req.query);
 
@@ -73,10 +76,10 @@ export const getStudents = async (req: Request, res: Response) => {
 
 export const getStudentById = async (req: Request, res: Response) => {
   try {
-    const schoolId = req?.user?.schoolId;
+    const schoolId = String((req as any)?.user?.schoolId || "");
     const { id } = req.params;
 
-    const student = await service.getStudentByIdService(schoolId, id);
+    const student = await service.getStudentByIdService(schoolId, String(id));
 
     res.json({
       success: true,
@@ -93,7 +96,7 @@ export const getStudentById = async (req: Request, res: Response) => {
 export const getStudentsByClass = async (req: any, res: Response) => {
   try {
     const { classId, sectionId, search = "" } = req.query;
-    const schoolId = req.user.schoolId;
+    const schoolId = String(req.user?.schoolId || "");
 
     if (!classId) {
       return res.status(400).json({
@@ -206,7 +209,7 @@ export const updateStudent = async (req: any, res: Response) => {
 /* ================= DELETE ================= */
 export const deleteStudent = async (req: any, res: Response) => {
   try {
-    const schoolId = req.user.schoolId;
+    const schoolId = String(req.user?.schoolId || "");
     const { id } = req.params;
 
     await service.deleteStudentService(schoolId, id);
@@ -226,7 +229,7 @@ export const deleteStudent = async (req: any, res: Response) => {
 export const getAllStudentsByClass = async (req: any, res: Response) => {
   try {
     const { classId, sectionId } = req.query;
-    const schoolId = req.user.schoolId;
+    const schoolId = String(req.user?.schoolId || "");
 
     if (!classId) {
       return res.status(400).json({

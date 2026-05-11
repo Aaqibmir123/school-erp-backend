@@ -8,6 +8,7 @@ export const getTeacherTimetableService = async (teacherId: string) => {
     .populate("sectionId", "name")
     .lean();
   const result: any = {
+    Sun: [],
     Mon: [],
     Tue: [],
     Wed: [],
@@ -25,7 +26,8 @@ export const getTeacherTimetableService = async (teacherId: string) => {
       _id: t._id,
       classId: t.classId?._id,
       className: t.classId?.name,
-      sectionId: t.sectionId,
+      sectionId: t.sectionId?._id || t.sectionId || null,
+      sectionName: t.sectionId?.name || "General",
       subjectId: t.subjectId?._id,
       subjectName: t.subjectId?.name,
       periodId: t.periodId?._id,

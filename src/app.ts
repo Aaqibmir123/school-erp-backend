@@ -18,7 +18,9 @@ import adminRoutes from "./modules/admin/admin.routes";
 
 /* ================= SCHOOL ADMIN ================= */
 import academicYearRoutes from "./modules/academicYears/academicYear.routes";
+import admitCardRoutes from "./modules/school-admin/admit-cards/admitCard.routes";
 import classRoutes from "./modules/school-admin/classes/class.routes";
+import dashboardRoutes from "./modules/school-admin/dashboard/dashboard.routes";
 import createExamsRoutesByAdmin from "./modules/school-admin/exams/exam.routes";
 import feeAdminRoutes from "./modules/school-admin/Fee/fee.routes";
 import periodRoutes from "./modules/school-admin/periods/period.routes";
@@ -28,10 +30,9 @@ import schoolRoutes from "./modules/school-admin/school/school.routes";
 import sectionRoutes from "./modules/school-admin/sections/sections.routes";
 import studentRoutes from "./modules/school-admin/student/student.routes";
 import subjectRoutes from "./modules/school-admin/subjects/subjects.routes";
-import dashboardRoutes from "./modules/school-admin/dashboard/dashboard.routes";
-import transportRoutes from "./modules/school-admin/transport/transport.routes";
 import schoolAdminRoutes from "./modules/school-admin/teacher/teacher.routes";
 import timeTableRoutes from "./modules/school-admin/timetable/timetable.routes";
+import transportRoutes from "./modules/school-admin/transport/transport.routes";
 
 /* ================= TEACHER ================= */
 import midTermAttendanceRoutes from "./modules/acdamicData/attendance/attendance.routes";
@@ -40,6 +41,7 @@ import teacherRoutes from "./modules/teacher/teacher.routes";
 import teacherTimeTablesRoutes from "./teachers/timetable/teacher.routes";
 
 /* ================= STUDENT ================= */
+import studentAdmitCardRoutes from "./modules/students/admitCard.routes";
 import studentSideRoutes from "./modules/students/student.route";
 
 /* ================= ACADEMIC ================= */
@@ -138,6 +140,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/files", documentRoutes);
 
 app.use("/api/school-admin", schoolAdminRoutes);
 app.use("/api/school-admin/classes", classRoutes);
@@ -154,6 +157,7 @@ app.use("/api/school-admin/transport", transportRoutes);
 app.use("/api/school", schoolRoutes);
 app.use("/api/school-admin/fee", feeAdminRoutes);
 app.use("/api/school-admin/fees", receiptRoutes);
+app.use("/api/school-admin/admit-cards", admitCardRoutes);
 
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/teacher", teacherTimeTablesRoutes);
@@ -161,6 +165,7 @@ app.use("/api/teacher/marks", midTermMarksRoutes);
 app.use("/api/teacher/attendance", midTermAttendanceRoutes);
 
 app.use("/api/student", studentSideRoutes);
+app.use("/api/student/admit-cards", studentAdmitCardRoutes);
 
 app.use("/api/attendance", attendanceRoute);
 app.use("/api/attendance", teacherAttendanceRoutes);

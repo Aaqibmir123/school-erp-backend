@@ -47,7 +47,7 @@ const readRefreshToken = (req: Request) => {
     .map((item) => item.trim())
     .find((item) => item.startsWith(`${REFRESH_COOKIE_NAME}=`));
 
-  if (!match) return req.body.refreshToken as string | undefined;
+  if (!match) return req.body?.refreshToken as string | undefined;
 
   return decodeURIComponent(match.split("=").slice(1).join("="));
 };
@@ -108,21 +108,6 @@ export const applySchool = async (
   try {
     const data = await authService.applySchool(req.body);
     return successResponse(res, data, "Application submitted", 201);
-  } catch (error) {
-    return next(error);
-  }
-};
-
-/* ================= FIREBASE LOGIN ================= */
-export const firebaseLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const data = await authService.firebaseLoginService(req.body.idToken);
-    setRefreshCookie(res, (data as any).refreshToken);
-    return successResponse(res, data, "Login successful");
   } catch (error) {
     return next(error);
   }

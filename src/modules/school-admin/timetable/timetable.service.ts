@@ -54,7 +54,7 @@ export const createTimetableEntries = async (
       /* 💣 DB CONFLICT CHECK */
       /* ====================================== */
 
-      const dbConflict = await Timetable.findOne({
+      const dbConflict: any = await Timetable.findOne({
         schoolId: new Types.ObjectId(schoolId),
         teacherId: new Types.ObjectId(e.teacherId),
         day: e.day,
@@ -69,7 +69,7 @@ export const createTimetableEntries = async (
       if (dbConflict) {
         console.log("⚠️ Conflict Found:", dbConflict);
 
-        const teacher = dbConflict.teacherId;
+        const teacher: any = dbConflict.teacherId;
         const teacherName = teacher
           ? `${teacher.firstName || ""} ${teacher.lastName || ""}`.trim()
           : "Teacher";
@@ -152,7 +152,7 @@ export const getTimetable = async ({ schoolId, classId, sectionId }: any) => {
     query.sectionId = null;
   }
 
-  const data = await Timetable.find(query)
+  const data: any[] = await Timetable.find(query)
     .populate("subjectId", "name")
     .populate("teacherId", "firstName lastName status")
     .populate("periodId", "startTime endTime periodNumber")

@@ -1,4 +1,4 @@
-export const validateCreateExam = (data) => {
+export const validateCreateExam = (data: any) => {
   const requiredFields = [
     "name",
     "examType",

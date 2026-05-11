@@ -2,7 +2,7 @@
   "name": "school-erp-backend",
   "version": "1.0.0",
   "description": "School ERP Backend",
-  "main": "dist/server.js",
+  "main": "hostinger-start.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "node -e \"console.log('Skipping TypeScript build for Hostinger runtime deploy')\"",
@@ -24,13 +24,14 @@
     "dayjs": "^1.11.20",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "firebase-admin": "^13.8.0",
+    "express-rate-limit": "^8.4.1",
     "handlebars": "^4.7.9",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "module-alias": "^2.3.4",
     "mongoose": "^9.3.0",
+    "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "nodemailer": "^8.0.2",
     "puppeteer": "^24.41.0",
@@ -52,3 +53,4 @@
     "typescript": "^5.9.3"
   }
 }
+

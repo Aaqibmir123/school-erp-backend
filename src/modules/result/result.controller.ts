@@ -1,7 +1,8 @@
 import {
-  createResultsService,
-  getResultsByExamService,
-  getResultsHistoryService,
+    createResultsService,
+    getMidTermMarksCardPreviewService,
+    getResultsByExamService,
+    getResultsHistoryService,
 } from "./result.service";
 
 /* ================= CREATE ================= */
@@ -75,6 +76,33 @@ export const getResultsHistoryController = async (req: any, res: any) => {
     });
   } catch (err: any) {
     return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+export const getMidTermMarksCardPreviewController = async (req: any, res: any) => {
+  try {
+    const schoolId = req.user.schoolId;
+    const { examId, studentId } = req.query;
+    const host = req.get("host");
+    const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+
+    const data = await getMidTermMarksCardPreviewService({
+      schoolId,
+      examId: examId as string | undefined,
+      studentId: studentId as string | undefined,
+      approvedOnly: String(req.query.approvedOnly || "").toLowerCase() === "true",
+      serverUrl: `${protocol}://${host}`,
+    });
+
+    return res.json({
+      success: true,
+      data,
+    });
+  } catch (err: any) {
+    return res.status(404).json({
       success: false,
       message: err.message,
     });

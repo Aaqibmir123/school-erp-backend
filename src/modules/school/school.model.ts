@@ -26,6 +26,12 @@ const schoolSchema = new mongoose.Schema(
       type: String,
     },
 
+    /** bcrypt hash set at application time; never returned on normal queries */
+    passwordHash: {
+      type: String,
+      select: false,
+    },
+
     status: {
       type: String,
       enum: ["PENDING", "APPROVED", "REJECTED"],

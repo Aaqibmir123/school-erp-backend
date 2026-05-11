@@ -3,7 +3,7 @@ import * as periodService from "./period.service";
 
 export const createPeriod = async (req: Request, res: Response) => {
   try {
-    const schoolId = req?.user?.schoolId;
+    const schoolId = req.user.schoolId;
     const { startTime, endTime, type } = req.body;
 
     if (!startTime || !endTime) {
@@ -96,7 +96,7 @@ export const updatePeriod = async (req: Request, res: Response) => {
 export const deletePeriod = async (req: Request, res: Response) => {
   try {
     const schoolId = req.user.schoolId;
-    const { id } = req.params;
+    const id = String(req.params.id || "");
     const { forceDelete } = req.body;
 
     const result = await periodService.deletePeriod(id, schoolId, forceDelete);

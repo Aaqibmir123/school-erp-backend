@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { CreateTeacherDTO } from "../../../../shared-types/teacher.types";
 import { getDayFromDate, isSameDate } from "../../../utils/time.utils";
+import { ApiError } from "../../../utils/apiError";
 import { User, UserRole } from "../../user/user.model";
 import { StudentModel } from "../student/student.model";
 import TimetableModel from "../timetable/timetable.model";
@@ -35,13 +36,16 @@ const getDayVariants = (day: string) => {
    FORMAT CLASS
 ========================= */
 const formatClass = (item: any) => {
+  const sectionRef = item.sectionId;
+
   return {
     classId: item.classId?._id,
-    sectionId: item.sectionId,
+    sectionId: sectionRef?._id || sectionRef || null,
     subjectId: item.subjectId?._id,
     periodId: item.periodId?._id,
 
     className: item.classId?.name,
+    sectionName: sectionRef?.name || "General",
     subjectName: item.subjectId?.name,
 
     startTime: item.periodId?.startTime,
@@ -85,6 +89,93 @@ const sanitizeProfileUpdate = (data: Record<string, any>) => {
   }, {});
 };
 
+const normalizeTeacherPhone = (phone?: string) => {
+  const digits = String(phone || "").replace(/\D/g, "");
+  return digits.slice(-10);
+};
+
+const normalizeTeacherEmail = (email?: string) =>
+  String(email || "").trim().toLowerCase();
+
+const normalizeTeacherEmployeeId = (employeeId?: string) =>
+  String(employeeId || "").trim();
+
+const ensureTeacherIdentityIsUnique = async (
+  schoolId: string,
+  data: Partial<CreateTeacherDTO>,
+  currentTeacherId?: string,
+  currentUserId?: string,
+) => {
+  const phone = normalizeTeacherPhone(data.phone);
+  const email = normalizeTeacherEmail(data.email);
+  const employeeId = normalizeTeacherEmployeeId(data.employeeId);
+
+  const teacherFilter: Record<string, any> = {
+    schoolId,
+  };
+
+  if (currentTeacherId) {
+    teacherFilter._id = { $ne: currentTeacherId };
+  }
+
+  const userFilter: Record<string, any> = {};
+
+  if (currentUserId) {
+    userFilter._id = { $ne: currentUserId };
+  }
+
+  if (phone) {
+    const userPhoneExists = await User.findOne({
+      ...userFilter,
+      phone,
+    }).select("_id role");
+
+    if (userPhoneExists) {
+      throw new ApiError(409, "Phone number already exists");
+    }
+
+    const teacherPhoneExists = await TeacherModel.findOne({
+      ...teacherFilter,
+      phone,
+    }).select("_id");
+
+    if (teacherPhoneExists) {
+      throw new ApiError(409, "Phone number already exists");
+    }
+  }
+
+  if (email) {
+    const userEmailExists = await User.findOne({
+      ...userFilter,
+      email,
+    }).select("_id role");
+
+    if (userEmailExists) {
+      throw new ApiError(409, "Email already exists");
+    }
+
+    const teacherEmailExists = await TeacherModel.findOne({
+      ...teacherFilter,
+      email,
+    }).select("_id");
+
+    if (teacherEmailExists) {
+      throw new ApiError(409, "Email already exists");
+    }
+  }
+
+  if (employeeId) {
+    const teacherIdExists = await TeacherModel.findOne({
+      ...teacherFilter,
+      employeeId,
+    }).select("_id");
+
+    if (teacherIdExists) {
+      throw new ApiError(409, "Teacher ID already exists");
+    }
+  }
+};
+
 /* =========================
    CURRENT CLASS (OPTIMIZED + CACHE)
 ========================= */
@@ -112,6 +203,7 @@ export const getCurrentClassService = async (teacherId: string) => {
     day: { $in: todayVariants },
   })
     .populate("classId", "name")
+    .populate("sectionId", "name")
     .populate("subjectId", "name")
     .populate("periodId", "startTime endTime")
     .sort({ startMinutes: 1 })
@@ -278,6 +370,8 @@ export const createTeacher = async (
   schoolId: string,
   data: CreateTeacherDTO & { profileImage?: string },
 ) => {
+  await ensureTeacherIdentityIsUnique(schoolId, data);
+
   const user = await User.create({
     name: `${data.firstName} ${data.lastName}`,
     email: data.email,
@@ -335,7 +429,7 @@ export const getTeacherProfileByTeacherId = async (teacherId: string) => {
     .lean();
 
   if (!teacher) {
-    throw new Error("Teacher not found");
+    throw new ApiError(404, "Teacher not found");
   }
 
   return teacher;
@@ -345,6 +439,19 @@ export const updateTeacher = async (
   id: string,
   data: Partial<CreateTeacherDTO>,
 ) => {
+  const teacher = await TeacherModel.findById(id).select("schoolId userId");
+
+  if (!teacher) {
+    throw new ApiError(404, "Teacher not found");
+  }
+
+  await ensureTeacherIdentityIsUnique(
+    teacher.schoolId.toString(),
+    data,
+    teacher._id.toString(),
+    teacher.userId?.toString?.(),
+  );
+
   return TeacherModel.findByIdAndUpdate(id, data, {
     new: true,
   }).lean();
@@ -414,8 +521,16 @@ export const updateTeacherService = async (
   });
 
   if (!teacher) {
-    throw new Error("Teacher not found");
+    const err = new ApiError(404, "Teacher not found");
+    throw err;
   }
+
+  await ensureTeacherIdentityIsUnique(
+    schoolId,
+    data,
+    teacher._id.toString(),
+    teacher.userId?.toString?.(),
+  );
 
   Object.assign(teacher, data);
   await teacher.save();
@@ -443,12 +558,17 @@ export const updateTeacherProfileService = async (
   const teacher = await TeacherModel.findById(teacherId);
 
   if (!teacher) {
-    const err: any = new Error("Teacher not found");
-    err.statusCode = 404;
-    throw err;
+    throw new ApiError(404, "Teacher not found");
   }
 
   const updateData = sanitizeProfileUpdate(data);
+
+  await ensureTeacherIdentityIsUnique(
+    String(teacher.schoolId || ""),
+    updateData,
+    teacher._id.toString(),
+    teacher.userId?.toString?.(),
+  );
 
   // WHY: Some existing teacher records were created before profile fields were
   // fully populated. Using a partial atomic update avoids save-time validation

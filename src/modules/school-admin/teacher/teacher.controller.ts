@@ -30,7 +30,7 @@ export const createTeacher = async (req: any, res: Response) => {
   } catch (err: any) {
     console.error("Create teacher error:", err);
 
-    return res.status(500).json({
+    return res.status(err.statusCode || 500).json({
       success: false,
       message: err.message,
     });
@@ -239,7 +239,7 @@ export const updateTeacher = async (req: any, res: Response) => {
   } catch (err: any) {
     console.error("Update teacher error:", err);
 
-    return res.status(500).json({
+    return res.status(err.statusCode || 500).json({
       success: false,
       message: err.message,
     });

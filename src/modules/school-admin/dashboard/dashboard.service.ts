@@ -36,6 +36,93 @@ const normalizeMonth = (month?: string) => {
   return match || trimmed;
 };
 
+const getDashboardBaseMetrics = async (schoolObjectId: Types.ObjectId) => {
+  const [studentCount, teacherCount, classCount, sectionCount, subjectCount, transportCount, activeTransportCount, feeAggregate] =
+    await Promise.all([
+      StudentModel.countDocuments({ schoolId: schoolObjectId }),
+      TeacherModel.countDocuments({ schoolId: schoolObjectId }),
+      ClassModel.countDocuments({ schoolId: schoolObjectId }),
+      SectionModel.countDocuments({ schoolId: schoolObjectId }),
+      SubjectModel.countDocuments({ schoolId: schoolObjectId }),
+      TransportModel.countDocuments({ schoolId: schoolObjectId }),
+      TransportModel.countDocuments({
+        schoolId: schoolObjectId,
+        status: "active",
+      }),
+      FeeModel.aggregate([
+        {
+          $match: {
+            schoolId: schoolObjectId,
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            collected: { $sum: "$paidAmount" },
+            due: { $sum: "$remainingAmount" },
+            total: { $sum: "$totalAmount" },
+            paidCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "paid"] }, 1, 0],
+              },
+            },
+            partialCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "partial"] }, 1, 0],
+              },
+            },
+            unpaidCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "unpaid"] }, 1, 0],
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
+  return {
+    counts: {
+      students: studentCount,
+      teachers: teacherCount,
+      classes: classCount,
+      sections: sectionCount,
+      subjects: subjectCount,
+      transports: transportCount,
+      activeTransports: activeTransportCount,
+    },
+    feeTotals: feeAggregate[0] || {
+      collected: 0,
+      due: 0,
+      total: 0,
+      paidCount: 0,
+      partialCount: 0,
+      unpaidCount: 0,
+    },
+    teacherPayrollEstimate: teacherCount * 12000,
+  };
+};
+
+export const getDashboardOverviewService = async (schoolId: string) => {
+  const schoolObjectId = new Types.ObjectId(schoolId);
+  const { counts, feeTotals, teacherPayrollEstimate } =
+    await getDashboardBaseMetrics(schoolObjectId);
+
+  return {
+    counts,
+    finance: {
+      collected: Number(feeTotals.collected || 0),
+      due: Number(feeTotals.due || 0),
+      total: Number(feeTotals.total || 0),
+      paidCount: Number(feeTotals.paidCount || 0),
+      partialCount: Number(feeTotals.partialCount || 0),
+      unpaidCount: Number(feeTotals.unpaidCount || 0),
+      teacherPayrollEstimate,
+    },
+    generatedAt: dayjs().toISOString(),
+  };
+};
+
 export const getDashboardSummaryService = async (schoolId: string) => {
   const schoolObjectId = new Types.ObjectId(schoolId);
 

@@ -6,6 +6,7 @@ export enum UserRole {
   TEACHER = "TEACHER",
   PARENT = "PARENT",
   STUDENT = "STUDENT",
+  REVIEWER = "REVIEWER",
 }
 
 const userSchema = new mongoose.Schema(

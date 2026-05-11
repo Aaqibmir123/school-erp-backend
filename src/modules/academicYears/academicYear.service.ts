@@ -6,10 +6,22 @@ export const createAcademicYearService = async (
   schoolId: string,
   name: string
 ) => {
+  const shouldAutoActivate = !(await AcademicYear.exists({
+    schoolId,
+    isActive: true,
+  }));
+
+  if (shouldAutoActivate) {
+    await AcademicYear.updateMany(
+      { schoolId },
+      { $set: { isActive: false } },
+    );
+  }
 
   return await AcademicYear.create({
     schoolId,
     name,
+    isActive: shouldAutoActivate,
   });
 
 };

@@ -34,7 +34,7 @@ export const updateFee = async (
   next: NextFunction,
 ) => {
   try {
-    const fee = await service.updateFeeService(req.params.id, req.body);
+    const fee = await service.updateFeeService(String(req.params.id || ""), req.body);
 
     return res.json({
       success: true,
@@ -53,7 +53,7 @@ export const deleteFee = async (
   next: NextFunction,
 ) => {
   try {
-    await service.deleteFeeService(req.params.id);
+    await service.deleteFeeService(String(req.params.id || ""));
 
     return res.json({
       success: true,
@@ -72,7 +72,7 @@ export const getFeesByStudent = async (
   next: NextFunction,
 ) => {
   try {
-    const data = await service.getFeesByStudentService(req.params.studentId);
+    const data = await service.getFeesByStudentService(String(req.params.studentId || ""));
 
     return res.json({
       success: true,

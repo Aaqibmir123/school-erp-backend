@@ -8,7 +8,9 @@ export interface IMark extends Document {
   sectionId?: mongoose.Types.ObjectId | null;
   schoolId: mongoose.Types.ObjectId;
   teacherId: mongoose.Types.ObjectId;
+  teacherNameSnapshot?: string;
   marks: number | null;
+  feedback?: string;
   rollNumberSnapshot?: number | null;
 }
 
@@ -21,7 +23,9 @@ const markSchema = new Schema<IMark>(
     sectionId: { type: Schema.Types.ObjectId, ref: "Section", default: null },
     schoolId: { type: Schema.Types.ObjectId, ref: "School", required: true },
     teacherId: { type: Schema.Types.ObjectId, ref: "Teacher", required: true },
-    marks: { type: Number, min: 0, max: 999 },
+    teacherNameSnapshot: { type: String, default: "" },
+    marks: { type: Number, min: 0 },
+    feedback: { type: String, default: "" },
     rollNumberSnapshot: { type: Number, default: null },
   },
   { timestamps: true },

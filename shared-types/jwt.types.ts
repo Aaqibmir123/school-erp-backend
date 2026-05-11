@@ -1,6 +1,7 @@
 export interface JwtPayload {
+  _id?: string;
   id: string;
-  role: "ADMIN" | "TEACHER" | "STUDENT" | "PARENT";
+  role: "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "REVIEWER";
   schoolId: string;
   academicYearId: string;
 
@@ -9,4 +10,5 @@ export interface JwtPayload {
   sectionId?: string;
   phone?: string;
   studentId?: string;
+  accessModules?: Array<"parent" | "teacher">;
 }

@@ -24,4 +24,6 @@ export interface AssignSubjectPayload {
   subjectId: string;
   classId: string;
   academicYearId: string;
+  sectionId?: string | null;
+  isClassTeacher?: boolean;
 }

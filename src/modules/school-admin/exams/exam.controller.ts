@@ -2,6 +2,7 @@ import {
   createExamService,
   deleteExamService,
   getExamsService,
+  toggleMarksCardApprovalService,
   updateExamService,
 } from "./exam.service";
 
@@ -79,6 +80,30 @@ export const deleteExam = async (req: any, res: any) => {
     return res.status(200).json({
       success: true,
       message: "Exam deleted successfully",
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+/* ================= MARKS CARD APPROVAL ================= */
+export const toggleMarksCardApproval = async (req: any, res: any) => {
+  try {
+    const exam = await toggleMarksCardApprovalService({
+      id: req.params.id,
+      user: { ...req.user, academicYearId: req.academicYearId },
+      approved: Boolean(req.body?.approved),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: req.body?.approved
+        ? "Marks sheet approved successfully"
+        : "Marks sheet approval revoked successfully",
+      data: exam,
     });
   } catch (err: any) {
     return res.status(400).json({

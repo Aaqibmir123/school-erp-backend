@@ -6,6 +6,7 @@ import { env } from "../config/env";
 import { User } from "../modules/user/user.model";
 import { ensureUserRoleAccess } from "../utils/accountAccess";
 import { ApiError } from "../utils/apiError";
+import { REVIEWER_ACCESS_MODULES } from "../utils/reviewerAccess";
 
 export const authMiddleware = (
   req: Request,

@@ -41,6 +41,7 @@ export const createExamService = async (data: any, user: any) => {
 
   if (!classId) throw new Error("Class is required");
   if (!sectionId) throw new Error("Section is required");
+  if (!schoolId) throw new Error("School is required");
 
   /* ================= DUPLICATE CHECK 💣 ================= */
 

@@ -1,43 +1,43 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 
 import { validate } from "../../middlewares/validate.middleware";
-import { createRateLimiter } from "../../middlewares/rateLimit.middleware";
 import * as controller from "./auth.controller";
 import {
   applySchoolSchema,
   checkUserSchema,
-  firebaseLoginSchema,
   loginSchema,
   setPasswordSchema,
 } from "./auth.validation";
 
 const router = Router();
 
-const authRateLimit = createRateLimiter({
-  keyPrefix: "auth",
-  max: 10,
-  message: "Too many authentication attempts. Please try again shortly.",
-  windowMs: 60 * 1000,
-});
+const buildLimiter = (limit: number) =>
+  rateLimit({
+    limit,
+    standardHeaders: true,
+    legacyHeaders: false,
+    windowMs: 15 * 60 * 1000,
+    message: "Too many attempts, try later",
+    handler: (_req, res, _next, options) => {
+      res.status(options.statusCode).json({
+        success: false,
+        message: String(options.message || "Too many attempts, try later"),
+        data: null,
+      });
+    },
+  });
 
-const refreshRateLimit = createRateLimiter({
-  keyPrefix: "auth-refresh",
-  max: 60,
-  message: "Session refresh rate limit reached. Please sign in again.",
-  windowMs: 15 * 60 * 1000,
-});
+const authRateLimit = buildLimiter(10);
+const otpSendRateLimit = buildLimiter(5);
+const otpVerifyRateLimit = buildLimiter(10);
+
+const refreshRateLimit = buildLimiter(60);
 
 router.post("/check-user", authRateLimit, validate(checkUserSchema), controller.checkUser);
 router.post("/login", authRateLimit, validate(loginSchema), controller.login);
 router.post("/refresh", refreshRateLimit, controller.refreshSession);
 router.post("/logout", controller.logout);
-router.post("/set-password", validate(setPasswordSchema), controller.setPassword);
 router.post("/apply-school", validate(applySchoolSchema), controller.applySchool);
-router.post(
-  "/firebase-login",
-  authRateLimit,
-  validate(firebaseLoginSchema),
-  controller.firebaseLogin,
-);
 
 export default router;
