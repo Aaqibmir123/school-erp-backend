@@ -7,7 +7,12 @@ import * as controller from "./student.controller";
 
 const router = Router();
 
-const bulkUpload = uploadFile("student-bulk");
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+});
 
 router.post(
   "/",
@@ -31,7 +36,7 @@ router.post(
   "/bulk-preview",
   authMiddleware,
   roleMiddleware("SCHOOL_ADMIN"),
-  bulkUpload.single("file"),
+  upload.single("file"),
   bulkController.previewStudentBulk,
 );
 

@@ -55,7 +55,7 @@ export const getPeriods = async (req: Request, res: Response) => {
 export const updatePeriod = async (req: Request, res: Response) => {
   try {
     const schoolId = req.user.schoolId;
-    const id = String(req.params.id || "");
+    const { id } = req.params;
     const { startTime, endTime, type } = req.body;
 
     if (!startTime || !endTime) {

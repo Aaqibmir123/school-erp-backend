@@ -151,9 +151,8 @@ export const getStudentsByClass = async (req: any, res: Response) => {
 /* ================= UPDATE ================= */
 export const updateStudent = async (req: any, res: Response) => {
   try {
-    const schoolId = String(req.user?.schoolId || "");
+    const schoolId = req.user.schoolId;
     const role = String(req.user?.role || "").toUpperCase();
-    const isReviewer = role === "REVIEWER";
     const { id } = req.params;
 
     const payload = {
@@ -167,7 +166,7 @@ export const updateStudent = async (req: any, res: Response) => {
       );
     }
 
-    if (role === "PARENT" || isReviewer) {
+    if (role === "PARENT") {
       const normalizedPhone = normalizePhone(req.user?.phone);
       const student = await StudentModel.findOne({
         _id: id,
@@ -259,7 +258,7 @@ export const getAllStudentsByClass = async (req: any, res: Response) => {
 
 export const updateStudentStatus = async (req: any, res: Response) => {
   try {
-    const schoolId = String(req.user?.schoolId || "");
+    const schoolId = req.user.schoolId;
     const { id } = req.params;
     const { status } = req.body;
 

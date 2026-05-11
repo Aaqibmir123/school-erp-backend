@@ -50,9 +50,8 @@ import teacherAttendanceRoutes from "./modules/attendance/teacherAttendance.rout
 import createExamRoutes from "./modules/exam/exam.routes";
 import homeworkRoutes from "./modules/homework/homework.route";
 import noticeRoutes from "./modules/notice/notice.routes";
-import deleteAccountRoutes from "./modules/public/delete-account/deleteAccount.routes";
 import teacherResultRoutes from "./modules/result/result.routes";
-import documentRoutes from "./modules/files/document.routes";
+import deleteAccountRoutes from "./modules/public/delete-account/deleteAccount.routes";
 
 const app = express();
 
@@ -61,7 +60,13 @@ const trustedPreviewOriginPatterns = [
   /^https:\/\/aaqib-school-erp-admi(?:-[a-z0-9-]+)?\.vercel\.app$/i,
 ];
 
+const trustedProductionOrigins = new Set([
+  "https://smartschoolerp.co.in",
+  "https://www.smartschoolerp.co.in",
+]);
+
 const isAllowedOrigin = (origin: string) =>
+  trustedProductionOrigins.has(origin) ||
   env.clientOrigins.includes(origin) ||
   trustedPreviewOriginPatterns.some((pattern) => pattern.test(origin));
 
@@ -90,7 +95,7 @@ app.use(
 app.use(compression());
 app.use(
   morgan(env.NODE_ENV === "production" ? "combined" : "dev", {
-    skip: (req: any) => req.path === "/health",
+    skip: (req) => req.path === "/health",
   }),
 );
 
@@ -106,6 +111,18 @@ app.use((_, res, next) => {
 /* ================= STATIC FILES ================= */
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use(
+  "/receipts",
+  express.static(path.join(process.cwd(), "public/receipts")),
+);
+app.use(
+  "/marks-cards",
+  express.static(path.join(process.cwd(), "public/marks-cards")),
+);
+app.use(
+  "/admit-cards",
+  express.static(path.join(process.cwd(), "public/admit-cards")),
+);
 
 /* ================= ROUTES ================= */
 

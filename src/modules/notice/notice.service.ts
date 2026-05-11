@@ -53,15 +53,12 @@ export const getNoticeFeedService = async ({
   schoolId: string;
   role: string;
 }) => {
-  const normalizedRole = String(role || "").toUpperCase();
   const allowedAudience =
-    normalizedRole === "REVIEWER"
-      ? ["Teachers", "Students", "Parents", "Students & Parents", "All School Users"]
-      : normalizedRole === "TEACHER"
+    role === "TEACHER"
       ? ["Teachers", "All School Users"]
-      : normalizedRole === "PARENT"
+      : role === "PARENT"
         ? ["Parents", "Students & Parents", "All School Users"]
-        : normalizedRole === "STUDENT"
+        : role === "STUDENT"
           ? ["Students", "Students & Parents", "All School Users"]
           : ["Teachers", "Students", "Parents", "Students & Parents", "All School Users"];
 

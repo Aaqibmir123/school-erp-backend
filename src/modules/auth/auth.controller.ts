@@ -66,38 +66,6 @@ export const checkUser = async (
   }
 };
 
-/* ==============;=== SEND OTP ================= */
-export const sendOtp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const data = await authService.sendOtp(req.body.phone);
-    return successResponse(res, data, "OTP sent");
-  } catch (error) {
-    return next(error);
-  }
-};
-
-/* ================= VERIFY OTP ================= */
-export const verifyOtp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const data = await authService.verifyOtp(
-      req.body.phone,
-      req.body.otp,
-      req.body.sessionId,
-    );
-    setRefreshCookie(res, (data as any).refreshToken);
-    return successResponse(res, data, "Login successful");
-  } catch (error) {
-    return next(error);
-  }
-};
 
 /* ================= PASSWORD LOGIN ================= */
 export const login = async (
@@ -109,6 +77,23 @@ export const login = async (
     const data = await authService.login(req.body);
     setRefreshCookie(res, (data as any).refreshToken);
     return successResponse(res, data, "Login successful");
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/* ================= SET PASSWORD ================= */
+export const setPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const data = await authService.setPassword(
+      req.body.token,
+      req.body.password,
+    );
+    return successResponse(res, data, "Password updated");
   } catch (error) {
     return next(error);
   }
@@ -162,3 +147,4 @@ export const logout = async (
     return next(error);
   }
 };
+

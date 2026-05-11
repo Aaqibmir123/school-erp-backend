@@ -7,7 +7,7 @@ const envSchema = z.object({
   CLIENT_URLS: z
     .string()
     .default(
-      "https://smartschoolerp.co.in,https://www.smartschoolerp.co.in,http://localhost:3000,http://localhost:8081",
+      "http://localhost:3000,http://localhost:8081,https://aaqib-school-erp-admin.vercel.app,https://smartschoolerp.co.in,https://www.smartschoolerp.co.in",
     ),
   CLOUDINARY_API_KEY: z.string().optional().default(""),
   CLOUDINARY_API_SECRET: z.string().optional().default(""),
@@ -15,29 +15,39 @@ const envSchema = z.object({
   DELETE_ACCOUNT_SUPPORT_EMAIL: z.string().email().optional().default(""),
   EMAIL_PASS: z.string().optional().default(""),
   EMAIL_USER: z.string().optional().default(""),
+  FIREBASE_CLIENT_EMAIL: z.string().optional().default(""),
+  FIREBASE_CLIENT_ID: z.string().optional().default(""),
+  FIREBASE_PRIVATE_KEY: z.string().optional().default(""),
+  FIREBASE_PRIVATE_KEY_ID: z.string().optional().default(""),
+  FIREBASE_PROJECT_ID: z.string().optional().default(""),
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional().default(""),
+  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
+  MONGO_URI: z.string().optional().default(""),
+  MONGODB_URI: z.string().optional().default(""),
+  NODE_ENV: z
+    .enum(["development", "test", "production"])
+    .default("development"),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
   OTP_RESEND_SECONDS: z.coerce.number().int().positive().default(60),
   OTP_TTL_SECONDS: z.coerce.number().int().positive().default(300),
-  ENABLE_REVIEWER_LOGIN: z.string().optional().default("false"),
+  PHONE_AUTH_PROVIDER: z.enum(["firebase"]).default("firebase"),
+  PORT: z.coerce.number().default(3000),
+  REFRESH_JWT_SECRET: z.string().min(1, "REFRESH_JWT_SECRET is required"),
   REVIEWER_OTP: z.string().optional().default(""),
   REVIEWER_PHONE: z.string().optional().default(""),
-  TWO_FACTOR_API_KEY: z.string().min(1, "TWO_FACTOR_API_KEY is required"),
-  TWO_FACTOR_BASE_URL: z.string().url().default("https://2factor.in/API/V1"),
-  REFRESH_JWT_SECRET: z.string().min(1, "REFRESH_JWT_SECRET is required"),
+  SUPER_ADMIN_PASSWORD: z.string().min(1, "SUPER_ADMIN_PASSWORD is required"),
+  SUPER_ADMIN_PHONE: z.string().min(1, "SUPER_ADMIN_PHONE is required"),
+  TWO_FACTOR_API_KEY: z.string().optional().default(""),
+  TWO_FACTOR_BASE_URL: z
+    .string()
+    .url()
+    .default("https://2factor.in/API/V1"),
   WEB_APP_URL: z
     .string()
     .url()
     .optional()
     .or(z.literal(""))
     .default("https://smartschoolerp.co.in"),
-  SUPER_ADMIN_PASSWORD: z.string().min(1, "SUPER_ADMIN_PASSWORD is required"),
-  SUPER_ADMIN_PHONE: z.string().min(1, "SUPER_ADMIN_PHONE is required"),
-  JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
-  MONGO_URI: z.string().min(1, "MONGO_URI is required"),
-  NODE_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
-  PORT: z.coerce.number().default(5000),
 });
 
 const parsedEnv = envSchema.parse(process.env);
@@ -52,11 +62,22 @@ export const env = {
   DELETE_ACCOUNT_SUPPORT_EMAIL: cleanSecretValue(
     parsedEnv.DELETE_ACCOUNT_SUPPORT_EMAIL,
   ),
+  EMAIL_PASS: cleanSecretValue(parsedEnv.EMAIL_PASS),
+  EMAIL_USER: cleanSecretValue(parsedEnv.EMAIL_USER),
+  FIREBASE_CLIENT_EMAIL: cleanSecretValue(parsedEnv.FIREBASE_CLIENT_EMAIL),
+  FIREBASE_CLIENT_ID: cleanSecretValue(parsedEnv.FIREBASE_CLIENT_ID),
+  FIREBASE_PRIVATE_KEY: cleanSecretValue(parsedEnv.FIREBASE_PRIVATE_KEY),
+  FIREBASE_PRIVATE_KEY_ID: cleanSecretValue(parsedEnv.FIREBASE_PRIVATE_KEY_ID),
+  FIREBASE_PROJECT_ID: cleanSecretValue(parsedEnv.FIREBASE_PROJECT_ID),
   REVIEWER_OTP: cleanSecretValue(parsedEnv.REVIEWER_OTP),
   REVIEWER_PHONE: cleanSecretValue(parsedEnv.REVIEWER_PHONE),
-  ENABLE_REVIEWER_LOGIN: parsedEnv.ENABLE_REVIEWER_LOGIN === "true",
   TWO_FACTOR_API_KEY: cleanSecretValue(parsedEnv.TWO_FACTOR_API_KEY),
+  MONGO_URI: cleanSecretValue(parsedEnv.MONGO_URI || parsedEnv.MONGODB_URI),
   clientOrigins: parsedEnv.CLIENT_URLS.split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
 };
+
+if (!env.MONGO_URI) {
+  throw new Error("MONGO_URI or MONGODB_URI is required");
+}

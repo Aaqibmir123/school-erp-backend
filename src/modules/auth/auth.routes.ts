@@ -7,8 +7,7 @@ import {
   applySchoolSchema,
   checkUserSchema,
   loginSchema,
-  sendOtpSchema,
-  verifyOtpSchema,
+  setPasswordSchema,
 } from "./auth.validation";
 
 const router = Router();
@@ -36,8 +35,6 @@ const otpVerifyRateLimit = buildLimiter(10);
 const refreshRateLimit = buildLimiter(60);
 
 router.post("/check-user", authRateLimit, validate(checkUserSchema), controller.checkUser);
-router.post("/send-otp", otpSendRateLimit, validate(sendOtpSchema), controller.sendOtp);
-router.post("/verify-otp", otpVerifyRateLimit, validate(verifyOtpSchema), controller.verifyOtp);
 router.post("/login", authRateLimit, validate(loginSchema), controller.login);
 router.post("/refresh", refreshRateLimit, controller.refreshSession);
 router.post("/logout", controller.logout);

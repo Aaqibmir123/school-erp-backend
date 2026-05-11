@@ -10,22 +10,7 @@ export const checkUserSchema = z.object({
   phone: phoneSchema,
 });
 
-export const sendOtpSchema = z.object({
-  phone: phoneSchema,
-});
-
-export const verifyOtpSchema = z.object({
-  otp: z.string().trim().regex(/^\d{6}$/, "Enter a valid 6-digit OTP"),
-  phone: phoneSchema,
-  sessionId: z.string().trim().min(6, "Session ID is required"),
-});
-
-export const loginSchema = z.object({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  phone: phoneSchema,
-});
-
-export const applySchoolSchema = z
+export const loginSchema = z
   .object({
     address: z.string().trim().min(5, "Address is required"),
     email: z.string().trim().email("Enter a valid email"),
@@ -37,11 +22,30 @@ export const applySchoolSchema = z
     principalName: z.string().trim().min(3, "Principal name is required"),
     schoolName: z.string().trim().min(3, "School name is required"),
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  })
-  .transform(({ confirmPassword: _confirm, password, ...rest }) => ({
-    ...rest,
-    password,
-  }));
+  .superRefine((value, ctx) => {
+    if (!value.email && !value.phone) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Email or phone is required",
+        path: ["email"],
+      });
+    }
+  });
+
+export const setPasswordSchema = z.object({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  token: z.string().min(10, "Token is required"),
+});
+
+export const applySchoolSchema = z.object({
+  address: z.string().trim().min(5, "Address is required"),
+  email: z.string().trim().email("Enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  phone: phoneSchema,
+  principalName: z.string().trim().min(3, "Principal name is required"),
+  schoolName: z.string().trim().min(3, "School name is required"),
+});
+
+export const firebaseLoginSchema = z.object({
+  idToken: z.string().min(10, "idToken required"),
+});

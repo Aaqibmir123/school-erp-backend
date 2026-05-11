@@ -61,14 +61,15 @@ router.delete(
 router.get(
   "/teacher/me",
   authMiddleware,
-  roleMiddleware("TEACHER", "SCHOOL_ADMIN"),
+  roleMiddleware("TEACHER"),
   teacherController.getTeacherProfile,
 );
 
 router.put(
   "/teacher/me",
   authMiddleware,
-  roleMiddleware("TEACHER", "SCHOOL_ADMIN"),
+  roleMiddleware("TEACHER"),
+  uploadFile("teachers").single("profileImage"),
   teacherController.updateTeacherProfile,
 );
 

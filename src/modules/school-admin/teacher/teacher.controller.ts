@@ -71,12 +71,6 @@ export const getTeacherProfile = async (req: any, res: Response) => {
       req?.user?.teacherId ||
       (await teacherService.getTeacherByUserId(req?.user?.id))?._id?.toString?.();
 
-    console.info("[teacher/profile] get", {
-      role: req?.user?.role,
-      teacherId,
-      userId: req?.user?.id,
-    });
-
     if (!teacherId) {
       return res.status(403).json({
         success: false,
@@ -260,14 +254,6 @@ export const updateTeacherProfile = async (req: any, res: Response) => {
     const teacherId =
       req?.user?.teacherId ||
       (await teacherService.getTeacherByUserId(req?.user?.id))?._id?.toString?.();
-
-    console.info("[teacher/profile] update", {
-      role: req?.user?.role,
-      teacherId,
-      userId: req?.user?.id,
-      bodyKeys: Object.keys(req.body || {}),
-      hasFile: Boolean(req.file),
-    });
 
     if (!teacherId) {
       return res.status(403).json({

@@ -30,27 +30,15 @@ export const authMiddleware = (
     }
 
     const roleAccess = await ensureUserRoleAccess(user);
-    const isReviewer =
-      String(user.role || decoded.role || "").toUpperCase() === "REVIEWER";
-    const reviewerStudents = Array.isArray((roleAccess as any)?.students)
-      ? (roleAccess as any).students
-      : [];
 
     req.user = {
       ...decoded,
-      _id: user._id.toString(),
       id: user._id.toString(),
-      accessModules:
-        (roleAccess as any)?.accessModules ||
-        decoded.accessModules ||
-        (isReviewer ? [...REVIEWER_ACCESS_MODULES] : undefined),
       phone: user.phone,
-      role: String(user.role || decoded.role || "").toUpperCase() as JwtPayload["role"],
+      role: user.role as JwtPayload["role"],
       schoolId: user.schoolId?.toString?.() || decoded.schoolId,
       studentId:
-        (roleAccess as any)?.student?._id?.toString?.() ||
-        reviewerStudents[0]?._id?.toString?.() ||
-        decoded.studentId,
+        (roleAccess as any)?.student?._id?.toString?.() || decoded.studentId,
       teacherId:
         (roleAccess as any)?.teacher?._id?.toString?.() || decoded.teacherId,
     };

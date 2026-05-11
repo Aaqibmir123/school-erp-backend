@@ -84,7 +84,5 @@
   })
 
   studentSchema.index({ userId: 1 })
-  studentSchema.index({ schoolId: 1, parentPhone: 1 })
-  studentSchema.index({ schoolId: 1, parentUserId: 1 })
 
   export const StudentModel = mongoose.model("Student", studentSchema)
