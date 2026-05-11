@@ -20,6 +20,29 @@ const getReviewerPhone = () => normalizePhone(FIXED_REVIEWER_PHONE);
 
 const getReviewerOtp = () => FIXED_REVIEWER_OTP;
 
+const saveOrReuse = async <T extends { save?: () => Promise<T>; _id?: any }>(
+  finder: () => Promise<T | null>,
+  create: () => Promise<T>,
+) => {
+  const found = await finder();
+  if (found) {
+    return found;
+  }
+
+  try {
+    return await create();
+  } catch (error: any) {
+    if (error?.code === 11000) {
+      const retry = await finder();
+      if (retry) {
+        return retry;
+      }
+    }
+
+    throw error;
+  }
+};
+
 /* ================= CONFIG ================= */
 export const REVIEWER_ACCESS_MODULES = ["parent", "teacher"] as const;
 
@@ -63,57 +86,63 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
   // #endregion agent log
 
   /* ---------- SCHOOL ---------- */
-  const school = await School.findOneAndUpdate(
-    { phone },
-    {
-      $set: {
+  const reviewerEmail = `play-reviewer-${phone}@local.invalid`;
+
+  const school = await saveOrReuse(
+    async () => School.findOne({ phone }).lean(),
+    async () =>
+      School.create({
         address: "Reviewer demo access school",
-        email: `play-reviewer-${phone}@local.invalid`,
+        email: reviewerEmail,
         phone,
         principalName: "Play Store Reviewer",
         schoolName: "Google Play Reviewer Demo School",
         status: "APPROVED",
-      },
-    },
-    { new: true, upsert: true },
-  ).lean();
+      }),
+  );
 
   /* ---------- CLASS ---------- */
-  const classDoc = await ClassModel.findOneAndUpdate(
-    { schoolId: school._id, name: "Reviewer Class" },
-    {
-      $set: {
+  const classDoc = await saveOrReuse(
+    async () =>
+      ClassModel.findOne({
+        schoolId: school._id,
+        name: "Reviewer Class",
+      }).lean(),
+    async () =>
+      ClassModel.create({
         name: "Reviewer Class",
         order: 1,
         schoolId: school._id,
-      },
-    },
-    { new: true, upsert: true },
-  ).lean();
+      }),
+  );
 
   /* ---------- SECTION ---------- */
-  const section = await SectionModel.findOneAndUpdate(
-    { classId: classDoc._id, name: "A", schoolId: school._id },
-    {
-      $set: {
+  const section = await saveOrReuse(
+    async () =>
+      SectionModel.findOne({
+        classId: classDoc._id,
+        name: "A",
+        schoolId: school._id,
+      }).lean(),
+    async () =>
+      SectionModel.create({
         classId: classDoc._id,
         name: "A",
         order: 1,
         schoolId: school._id,
-      },
-    },
-    { new: true, upsert: true },
-  ).lean();
+      }),
+  );
 
   /* ---------- USER ---------- */
   const reviewerEmail = `play-reviewer-${phone}@local.invalid`;
-  const user = await User.findOneAndUpdate(
-    {
-      role: UserRole.REVIEWER,
-      $or: [{ phone }, { email: reviewerEmail }],
-    },
-    {
-      $set: {
+  const user = await saveOrReuse(
+    async () =>
+      User.findOne({
+        role: UserRole.REVIEWER,
+        $or: [{ phone }, { email: reviewerEmail }],
+      }).lean(),
+    async () =>
+      User.create({
         email: reviewerEmail,
         isFirstLogin: false,
         name: "Google Play Reviewer",
@@ -121,19 +150,18 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
         role: UserRole.REVIEWER,
         schoolId: school._id,
         status: "active",
-      },
-    },
-    { new: true, upsert: true },
-  ).lean();
+      }),
+  );
 
   /* ---------- TEACHER ---------- */
-  const teacher = await TeacherModel.findOneAndUpdate(
-    {
-      schoolId: school._id,
-      $or: [{ phone }, { email: reviewerEmail }, { userId: user._id }],
-    },
-    {
-      $set: {
+  const teacher = await saveOrReuse(
+    async () =>
+      TeacherModel.findOne({
+        schoolId: school._id,
+        $or: [{ phone }, { email: reviewerEmail }, { userId: user._id }],
+      }).lean(),
+    async () =>
+      TeacherModel.create({
         email: reviewerEmail,
         firstName: "Play",
         lastName: "Reviewer",
@@ -141,19 +169,18 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
         schoolId: school._id,
         status: "active",
         userId: user._id,
-      },
-    },
-    { new: true, upsert: true },
-  ).lean();
+      }),
+  );
 
   /* ---------- STUDENT ---------- */
-  const student = await StudentModel.findOneAndUpdate(
-    {
-      schoolId: school._id,
-      $or: [{ parentPhone: phone }, { parentUserId: user._id }],
-    },
-    {
-      $set: {
+  const student = await saveOrReuse(
+    async () =>
+      StudentModel.findOne({
+        schoolId: school._id,
+        $or: [{ parentPhone: phone }, { parentUserId: user._id }],
+      }).lean(),
+    async () =>
+      StudentModel.create({
         classId: classDoc._id,
         firstName: "Reviewer",
         lastName: "Student",
@@ -162,10 +189,8 @@ export const ensureReviewerAccessContext = async (phoneInput?: string) => {
         schoolId: school._id,
         sectionId: section._id,
         status: "active",
-      },
-    },
-    { new: true, upsert: true },
-  ).lean();
+      }),
+  );
 
   return {
     school,
