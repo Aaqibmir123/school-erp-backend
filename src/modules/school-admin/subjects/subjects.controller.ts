@@ -64,7 +64,7 @@ export const getSubjectsByClassController = async (req: any, res: Response) => {
 
 export const deleteSubjectController = async (req: Request, res: Response) => {
   try {
-    const { subjectId } = req.params;
+    const subjectId = String(req.params.subjectId || "");
 
     await deleteSubjectService(subjectId);
 

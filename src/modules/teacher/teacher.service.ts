@@ -367,7 +367,7 @@ export const getStudentsByClassService = async ({
 };
 
 export const getTeacherAcademicExamsService = async (teacher: any) => {
-  const schedules = await Schedule.find({
+  const schedules: any[] = await Schedule.find({
     teacherId: teacher.teacherId,
   })
     .populate("examId", "name examType startDate endDate")

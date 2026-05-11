@@ -3,24 +3,58 @@ import jwt from "jsonwebtoken";
 
 import { JwtPayload } from "../../shared-types/jwt.types";
 import { env } from "../config/env";
+import { User } from "../modules/user/user.model";
+import { ensureUserRoleAccess } from "../utils/accountAccess";
 import { ApiError } from "../utils/apiError";
+import { REVIEWER_ACCESS_MODULES } from "../utils/reviewerAccess";
 
 export const authMiddleware = (
   req: Request,
   _res: Response,
   next: NextFunction,
 ) => {
-  try {
+  (async () => {
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       return next(new ApiError(401, "Unauthorized"));
     }
 
-    req.user = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const user = await User.findById(decoded.id)
+      .select("_id phone role schoolId status")
+      .lean();
+
+    if (!user || user.status === "disabled") {
+      return next(new ApiError(403, "Your account is disabled by school admin"));
+    }
+
+    const roleAccess = await ensureUserRoleAccess(user);
+    const isReviewer =
+      String(user.role || decoded.role || "").toUpperCase() === "REVIEWER";
+    const reviewerStudents = Array.isArray((roleAccess as any)?.students)
+      ? (roleAccess as any).students
+      : [];
+
+    req.user = {
+      ...decoded,
+      _id: user._id.toString(),
+      id: user._id.toString(),
+      accessModules:
+        (roleAccess as any)?.accessModules ||
+        decoded.accessModules ||
+        (isReviewer ? [...REVIEWER_ACCESS_MODULES] : undefined),
+      phone: user.phone,
+      role: String(user.role || decoded.role || "").toUpperCase() as JwtPayload["role"],
+      schoolId: user.schoolId?.toString?.() || decoded.schoolId,
+      studentId:
+        (roleAccess as any)?.student?._id?.toString?.() ||
+        reviewerStudents[0]?._id?.toString?.() ||
+        decoded.studentId,
+      teacherId:
+        (roleAccess as any)?.teacher?._id?.toString?.() || decoded.teacherId,
+    };
 
     return next();
-  } catch {
-    return next(new ApiError(401, "Invalid token"));
-  }
+  })().catch(() => next(new ApiError(401, "Invalid token")));
 };

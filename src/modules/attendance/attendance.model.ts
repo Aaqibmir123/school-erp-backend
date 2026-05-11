@@ -21,7 +21,7 @@ const attendanceSchema = new Schema(
     sectionId: {
       type: Schema.Types.ObjectId,
       ref: "Section",
-      required: true,
+      default: null,
     },
     periodId: {
       type: Schema.Types.ObjectId,
@@ -54,6 +54,12 @@ const attendanceSchema = new Schema(
       type: String,
       default: "",
       trim: true,
+    },
+    markedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
     },
   },
   { timestamps: true },

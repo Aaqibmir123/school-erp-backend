@@ -16,7 +16,7 @@ export const previewStudentBulk = async (req: Request, res: Response) => {
     });
   }
 
-  const result = await previewStudentBulkService(file.path);
+  const result = await previewStudentBulkService(file.buffer);
 
   res.json(result);
 };

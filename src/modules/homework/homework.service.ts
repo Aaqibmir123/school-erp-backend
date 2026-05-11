@@ -1,4 +1,6 @@
 import { HomeworkModel } from "./homework.model";
+import HomeworkCheck from "../homeworkCheck/homeworkCheck.model";
+import mongoose from "mongoose";
 
 /* =========================
    CREATE
@@ -118,6 +120,7 @@ export const getStudentHomeworkService = async (
   schoolId: string,
   classId: string,
   sectionId?: string,
+  studentId?: string,
 ) => {
   /* ================= QUERY ================= */
 
@@ -149,11 +152,31 @@ export const getStudentHomeworkService = async (
     .sort({ dueDate: 1 })
     .lean();
 
+  const homeworkIds = homework.map((item: any) => item._id).filter(Boolean);
+
+  const checks =
+    studentId && homeworkIds.length
+      ? await HomeworkCheck.find({
+          schoolId: new mongoose.Types.ObjectId(schoolId),
+          studentId: new mongoose.Types.ObjectId(studentId),
+          homeworkId: { $in: homeworkIds.map((id: any) => new mongoose.Types.ObjectId(id)) },
+        })
+          .select("homeworkId marks feedback status updatedAt createdAt checkedBy")
+          .populate("checkedBy", "firstName lastName")
+          .lean()
+      : [];
+
+  const checkMap = new Map<string, any>();
+  checks.forEach((check: any) => {
+    checkMap.set(String(check.homeworkId), check);
+  });
+
   /* ================= RESPONSE ================= */
 
   return homework.map((item: any) => {
     const now = new Date();
     const due = item.dueDate ? new Date(item.dueDate) : null;
+    const check = checkMap.get(String(item._id));
 
     return {
       id: item._id,
@@ -177,6 +200,16 @@ export const getStudentHomeworkService = async (
 
       // 🔥 EXPIRY LOGIC
       isExpired: due ? due < now : false,
+
+      // 🔥 REVIEW STATUS
+      reviewFeedback: check?.feedback || "",
+      reviewMarks: Number(check?.marks || 0),
+      reviewStatus: check ? "REVIEWED" : "PENDING",
+      reviewedAt: check?.updatedAt || check?.createdAt || null,
+      reviewedBy: check?.checkedBy
+        ? `${check.checkedBy.firstName || ""} ${check.checkedBy.lastName || ""}`.trim()
+        : "N/A",
+      isReviewed: !!check,
 
       // 🔥 MARKS
       maxMarks: item.maxMarks || 0,

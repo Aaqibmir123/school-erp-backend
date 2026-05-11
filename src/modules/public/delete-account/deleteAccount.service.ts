@@ -74,7 +74,7 @@ const ensureSchoolMatches = (providedSchoolId: string, schoolId?: string) => {
   }
 };
 
-const loadSchoolByName = async (schoolName: string) => {
+const loadSchoolByName = async (schoolName: string): Promise<any> => {
   const normalizedSchoolName = normalizeText(schoolName);
 
   const school = await School.findOne({
@@ -93,20 +93,22 @@ const verifyParentAccount = async (
   school: { _id: unknown; schoolName: string },
   fullName: string,
 ) => {
-  const user = await User.findOne({
+  const schoolId = String(school._id);
+
+  const user: any = await User.findOne({
     phone,
     role: UserRole.PARENT,
     status: "active",
   }).select("_id name phone role schoolId status");
 
-  const anyStudents = await StudentModel.find({
+  const anyStudents: any[] = await StudentModel.find({
     parentPhone: phone,
     status: "active",
   }).select("_id fatherName firstName lastName parentPhone schoolId status");
 
-  const students = await StudentModel.find({
+  const students: any[] = await StudentModel.find({
     parentPhone: phone,
-    schoolId: school._id,
+    schoolId,
     status: "active",
   }).select("_id fatherName firstName lastName parentPhone schoolId status");
 
@@ -121,13 +123,16 @@ const verifyParentAccount = async (
   const linkedSchoolIds = [
     user?.schoolId ? String(user.schoolId) : "",
     ...students.map((student) => String(student.schoolId)),
-  ].filter(Boolean);
+  ].filter((value): value is string => Boolean(value));
 
   if (linkedSchoolIds.length && !linkedSchoolIds.includes(String(school._id))) {
     throwAccountError(409, "School name does not match our records");
   }
 
-  const candidateNames = [user?.name, ...students.map((student) => student.fatherName)];
+  const candidateNames = [
+    user?.name,
+    ...students.map((student) => student.fatherName),
+  ].filter((value): value is string => Boolean(value));
   ensureNameMatches(fullName, candidateNames);
 
   return {
@@ -143,14 +148,16 @@ const verifyTeacherAccount = async (
   school: { _id: unknown; schoolName: string },
   fullName: string,
 ) => {
-  const teacher = await TeacherModel.findOne({
+  const schoolId = String(school._id);
+
+  const teacher: any = await TeacherModel.findOne({
     phone,
-    schoolId: school._id,
+    schoolId,
     status: "active",
   }).select("_id firstName lastName phone schoolId status");
 
   if (!teacher) {
-    const anyTeacher = await TeacherModel.findOne({
+    const anyTeacher: any = await TeacherModel.findOne({
       phone,
       status: "active",
     }).select("_id schoolId");
@@ -180,7 +187,9 @@ const verifyStudentAccount = async (
   school: { _id: unknown; schoolName: string },
   fullName: string,
 ) => {
-  const user = await User.findOne({
+  const schoolId = String(school._id);
+
+  const user: any = await User.findOne({
     phone,
     role: UserRole.STUDENT,
     status: "active",
@@ -190,14 +199,14 @@ const verifyStudentAccount = async (
     throwAccountError(404, "No student account found for this phone number");
   }
 
-  const student = await StudentModel.findOne({
+  const student: any = await StudentModel.findOne({
     userId: user._id,
-    schoolId: school._id,
+    schoolId,
     status: "active",
   }).select("_id firstName lastName schoolId userId status");
 
   if (!student) {
-    const anyStudent = await StudentModel.findOne({
+    const anyStudent: any = await StudentModel.findOne({
       userId: user._id,
       status: "active",
     }).select("_id schoolId");
@@ -227,7 +236,7 @@ const verifyStaffAccount = async (
   school: { _id: unknown; schoolName: string },
   fullName: string,
 ) => {
-  const user = await User.findOne({
+  const user: any = await User.findOne({
     phone,
     role: UserRole.SCHOOL_ADMIN,
     status: "active",
@@ -253,7 +262,7 @@ const verifyOtherAccount = async (
   school: { _id: unknown; schoolName: string },
   fullName: string,
 ) => {
-  const user = await User.findOne({
+  const user: any = await User.findOne({
     phone,
     status: "active",
   }).select("_id name phone role schoolId status");
@@ -281,7 +290,7 @@ const verifyAccountForRequest = async (
 ): Promise<VerifiedAccountContext> => {
   const phone = normalizePhone(input.registeredPhoneNumber);
   const role = normalizeRole(input.role);
-  const school = await loadSchoolByName(input.schoolName);
+  const school: any = await loadSchoolByName(input.schoolName);
 
   if (!phone || phone.length !== 10) {
     throwAccountError(400, "Enter a valid registered phone number");

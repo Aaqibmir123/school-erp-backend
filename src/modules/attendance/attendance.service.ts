@@ -31,6 +31,22 @@ const getDayVariants = (day: string) => {
   return [shortDay, ...(DAY_VARIANTS[shortDay] || [])];
 };
 
+const normalizeOptionalObjectId = (value: unknown) => {
+  if (value === undefined || value === null) return null;
+
+  const normalized = String(value).trim();
+
+  if (
+    !normalized ||
+    normalized === "null" ||
+    normalized === "undefined"
+  ) {
+    return null;
+  }
+
+  return toObjectId(normalized);
+};
+
 /* =========================
    MARK ATTENDANCE
 ========================= */
@@ -83,7 +99,10 @@ export const markAttendanceService = async (
   }
 
   /* ================= DATE VALIDATION ================= */
-  const today = dayjs().startOf("day");
+  const istNow = new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+  );
+  const today = dayjs(istNow).startOf("day");
   const selectedDate = dayjs(date).startOf("day");
 
   if (!selectedDate.isValid()) {
@@ -103,8 +122,12 @@ export const markAttendanceService = async (
   let mode: "AUTO" | "MANUAL" = isManualMode ? "MANUAL" : "AUTO";
 
   /* ================= TIMETABLE CHECK ================= */
-  if (diffDays === 0 && !isManualMode) {
-    const now = dayjs();
+  if (diffDays !== 0) {
+    throw new Error("Attendance can only be marked on the current class date");
+  }
+
+  if (diffDays === 0) {
+    const now = dayjs(istNow);
     const todayDay = now.format("dddd");
     const todayVariants = getDayVariants(todayDay);
 
@@ -113,38 +136,28 @@ export const markAttendanceService = async (
       teacherId,
       classId,
       subjectId,
+      periodId,
       day: { $in: todayVariants },
     }).sort({ startMinutes: 1 });
 
-    if (!todayClass) {
-      throw new Error("No class assigned today");
-    }
-
     const currentMinutes = now.hour() * 60 + now.minute();
 
-    if (currentMinutes < todayClass.startMinutes) {
-      throw new Error("Class not started yet. Use manual mode if needed");
+    if (!todayClass) {
+      throw new Error("No class assigned for current time");
     }
 
-    if (currentMinutes > todayClass.endMinutes) {
-      throw new Error("Class already ended. Use manual mode");
+    if (
+      currentMinutes < todayClass.startMinutes ||
+      currentMinutes > todayClass.endMinutes
+    ) {
+      throw new Error("Class is not active right now");
     }
-  }
-
-  /* ================= PAST DATE ================= */
-  if (diffDays > 0) {
-    if (!isManualMode) {
-      throw new Error("Enable manual mode for past attendance");
-    }
-    mode = "MANUAL";
   }
 
   /* ================= SECTION ================= */
-  if (!sectionId) {
-    throw new Error("Section is required");
-  }
-
-  const finalSectionId = toObjectId(sectionId);
+  const finalSectionId =
+    normalizeOptionalObjectId(sectionId) ||
+    normalizeOptionalObjectId(assignment.sectionId);
 
   /* ================= BULK WRITE ================= */
   const bulkOps = students.map((s: any) => ({
@@ -198,15 +211,25 @@ export const getClassAttendanceService = async (
   subjectId: string,
   date: string,
 ) => {
-  return AttendanceModel.find({
+  const query: Record<string, unknown> = {
     schoolId,
     classId,
-    sectionId,
     periodId,
     subjectId,
     date,
-  })
+  };
+
+  const normalizedSectionId = normalizeOptionalObjectId(sectionId);
+
+  if (normalizedSectionId) {
+    query.sectionId = normalizedSectionId;
+  } else {
+    query.sectionId = null;
+  }
+
+  return AttendanceModel.find(query)
     .populate("studentId", "firstName lastName rollNumber")
+    .populate("markedBy", "firstName lastName")
     .lean();
 };
 
@@ -287,6 +310,7 @@ export const getAttendanceHistoryService = async ({
       .populate("studentId", "firstName lastName rollNumber classId sectionId")
       .populate("subjectId", "name")
       .populate("periodId", "startTime endTime")
+      .populate("markedBy", "firstName lastName")
       .sort({ date: -1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -342,8 +366,11 @@ export const getStudentAttendanceService = async (
 
   const [data, total] = await Promise.all([
     AttendanceModel.find(query)
+      .populate("classId", "name")
+      .populate("sectionId", "name")
       .populate("subjectId", "name")
       .populate("periodId", "startTime endTime")
+      .populate("markedBy", "firstName lastName")
       .sort({ date: -1 })
       .skip(skip)
       .limit(limit)

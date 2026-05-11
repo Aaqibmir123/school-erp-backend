@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { HomeworkModel } from "../homework/homework.model";
 import HomeworkCheck from "./homeworkCheck.model";
 
 export const bulkHomeworkCheckService = async ({
@@ -26,8 +27,7 @@ export const bulkHomeworkCheckService = async ({
 
   const filtered = students.filter(
     (s: any) =>
-      s.status === "DONE" ||
-      (s.marks && s.marks > 0) ||
+      (s.marks !== "" && s.marks !== null && s.marks !== undefined) ||
       (s.feedback && s.feedback.trim() !== ""),
   );
 
@@ -35,13 +35,36 @@ export const bulkHomeworkCheckService = async ({
     return { message: "No changes" };
   }
 
+  const homework = await HomeworkModel.findOne({
+    _id: toObjectId(homeworkId),
+    schoolId: toObjectId(schoolId),
+    teacherId: toObjectId(teacherId),
+  })
+    .select("maxMarks")
+    .lean();
+
+  if (!homework) {
+    throw new Error("Homework not found or unauthorized");
+  }
+
+  const maxMarks = Number(homework.maxMarks || 0);
+
   const operations = filtered
-    .filter((s: any) => s.status === "DONE")
     .map((s: any) => {
       const studentIdObj = toObjectId(s.studentId);
       const homeworkIdObj = toObjectId(homeworkId);
 
       if (!studentIdObj || !homeworkIdObj) return null;
+
+      const rawMarks = s.marks === "" || s.marks === null ? 0 : Number(s.marks);
+
+      if (Number.isNaN(rawMarks) || rawMarks < 0) {
+        throw new Error("Invalid marks value");
+      }
+
+      if (maxMarks > 0 && rawMarks > maxMarks) {
+        throw new Error(`Marks cannot exceed ${maxMarks}`);
+      }
 
       return {
         updateOne: {
@@ -54,12 +77,12 @@ export const bulkHomeworkCheckService = async ({
               schoolId: toObjectId(schoolId),
               classId: toObjectId(classId),
               subjectId: toObjectId(subjectId),
-              sectionId: toObjectId(sectionId),
+              sectionId: sectionId ? toObjectId(sectionId) : null,
 
               studentId: studentIdObj,
               homeworkId: homeworkIdObj,
               status: "DONE",
-              marks: s.marks || 0,
+              marks: rawMarks,
               feedback: s.feedback || "",
               checkedBy: toObjectId(teacherId),
             },
@@ -87,11 +110,20 @@ export const getHomeworkCheckService = async ({
 }: {
   homeworkId: string;
 }) => {
-  const data = await HomeworkCheck.find({
-    homeworkId: new mongoose.Types.ObjectId(homeworkId),
-  })
-    .select("studentId status marks feedback")
+  const homework = await HomeworkModel.findById(
+    new mongoose.Types.ObjectId(homeworkId),
+  )
+    .select("title maxMarks dueDate classId subjectId sectionId")
     .lean();
 
-  return data;
+  const checks = await HomeworkCheck.find({
+    homeworkId: new mongoose.Types.ObjectId(homeworkId),
+  })
+    .select("studentId marks feedback updatedAt createdAt")
+    .lean();
+
+  return {
+    homework,
+    checks,
+  };
 };

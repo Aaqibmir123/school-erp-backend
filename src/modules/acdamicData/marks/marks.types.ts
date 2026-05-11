@@ -1,6 +1,7 @@
 export interface MarkItemInput {
   studentId: string;
   marks: number | null;
+  feedback?: string;
 }
 
 export interface BulkMarksInput {

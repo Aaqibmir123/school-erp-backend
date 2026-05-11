@@ -1,19 +1,14 @@
 import { Request, Response } from "express";
 import { StudentModel } from "./student.model";
 import * as service from "./student.service";
+import { uploadBufferToCloudinary } from "../../../utils/cloudinary";
 
 import { downloadStudentTemplateService } from "./student.service";
 
-const normalizeUploadPath = (filePath?: string) => {
-  if (!filePath) return undefined;
-
-  const uploadsIndex = filePath.lastIndexOf("uploads");
-  if (uploadsIndex === -1) {
-    return filePath.replace(/\\/g, "/");
-  }
-
-  return `/${filePath.slice(uploadsIndex).replace(/\\/g, "/")}`;
-};
+const normalizePhone = (phone?: string) =>
+  String(phone || "")
+    .replace(/\D/g, "")
+    .slice(-10);
 
 export const downloadStudentTemplate = async (req: Request, res: Response) => {
   try {
@@ -39,12 +34,15 @@ export const downloadStudentTemplate = async (req: Request, res: Response) => {
 
 export const createStudent = async (req: Request, res: Response) => {
   try {
-    const schoolId = req.user.schoolId;
-    const academicYearId = req.user.academicYearId;
+    const user = (req.user || {}) as any;
+    const schoolId = String(user.schoolId || "");
+    const academicYearId = user.academicYearId
+      ? String(user.academicYearId)
+      : undefined;
 
     const student = await service.createStudentService(
       schoolId,
-      academicYearId,
+      academicYearId || "",
       req.body,
     );
 
@@ -64,7 +62,7 @@ export const createStudent = async (req: Request, res: Response) => {
 
 export const getStudents = async (req: Request, res: Response) => {
   try {
-    const schoolId = req?.user?.schoolId;
+    const schoolId = String((req as any)?.user?.schoolId || "");
 
     const result = await service.getStudentsService(schoolId, req.query);
 
@@ -78,10 +76,10 @@ export const getStudents = async (req: Request, res: Response) => {
 
 export const getStudentById = async (req: Request, res: Response) => {
   try {
-    const schoolId = req?.user?.schoolId;
+    const schoolId = String((req as any)?.user?.schoolId || "");
     const { id } = req.params;
 
-    const student = await service.getStudentByIdService(schoolId, id);
+    const student = await service.getStudentByIdService(schoolId, String(id));
 
     res.json({
       success: true,
@@ -98,7 +96,7 @@ export const getStudentById = async (req: Request, res: Response) => {
 export const getStudentsByClass = async (req: any, res: Response) => {
   try {
     const { classId, sectionId, search = "" } = req.query;
-    const schoolId = req.user.schoolId;
+    const schoolId = String(req.user?.schoolId || "");
 
     if (!classId) {
       return res.status(400).json({
@@ -110,6 +108,7 @@ export const getStudentsByClass = async (req: any, res: Response) => {
     const query: any = {
       schoolId,
       classId,
+      status: "active",
     };
 
     if (sectionId) query.sectionId = sectionId;
@@ -152,15 +151,45 @@ export const getStudentsByClass = async (req: any, res: Response) => {
 /* ================= UPDATE ================= */
 export const updateStudent = async (req: any, res: Response) => {
   try {
-    const schoolId = req.user.schoolId;
+    const schoolId = String(req.user?.schoolId || "");
+    const role = String(req.user?.role || "").toUpperCase();
+    const isReviewer = role === "REVIEWER";
     const { id } = req.params;
 
     const payload = {
       ...req.body,
     };
 
-    if (req.file?.path) {
-      payload.profileImage = normalizeUploadPath(req.file.path);
+    if (req.file) {
+      payload.profileImage = await uploadBufferToCloudinary(
+        req.file,
+        "students",
+      );
+    }
+
+    if (role === "PARENT" || isReviewer) {
+      const normalizedPhone = normalizePhone(req.user?.phone);
+      const student = await StudentModel.findOne({
+        _id: id,
+        schoolId,
+        parentPhone: { $in: [normalizedPhone, `0${normalizedPhone}`] },
+      })
+        .select("_id")
+        .lean();
+
+      if (!student) {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied",
+        });
+      }
+
+      const allowedParentFields = new Set(["profileImage"]);
+      Object.keys(payload).forEach((key) => {
+        if (!allowedParentFields.has(key)) {
+          delete payload[key];
+        }
+      });
     }
 
     const student = await service.updateStudentService(schoolId, id, payload);
@@ -181,7 +210,7 @@ export const updateStudent = async (req: any, res: Response) => {
 /* ================= DELETE ================= */
 export const deleteStudent = async (req: any, res: Response) => {
   try {
-    const schoolId = req.user.schoolId;
+    const schoolId = String(req.user?.schoolId || "");
     const { id } = req.params;
 
     await service.deleteStudentService(schoolId, id);
@@ -201,7 +230,7 @@ export const deleteStudent = async (req: any, res: Response) => {
 export const getAllStudentsByClass = async (req: any, res: Response) => {
   try {
     const { classId, sectionId } = req.query;
-    const schoolId = req.user.schoolId;
+    const schoolId = String(req.user?.schoolId || "");
 
     if (!classId) {
       return res.status(400).json({
@@ -224,6 +253,41 @@ export const getAllStudentsByClass = async (req: any, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+export const updateStudentStatus = async (req: any, res: Response) => {
+  try {
+    const schoolId = String(req.user?.schoolId || "");
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["active", "disabled"].includes(String(status))) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be active or disabled",
+      });
+    }
+
+    const student = await service.updateStudentStatusService(
+      schoolId,
+      id,
+      status,
+    );
+
+    return res.json({
+      success: true,
+      message:
+        status === "active"
+          ? "Student account enabled successfully"
+          : "Student account disabled successfully",
+      data: student,
+    });
+  } catch (err: any) {
+    return res.status(400).json({
+      success: false,
+      message: err.message,
     });
   }
 };

@@ -7,6 +7,7 @@ import {
   getTeacherAcademicExamsService,
   getTeacherClasses,
 } from "./teacher.service";
+import { getTeacherTimetableByDate } from "../school-admin/teacher/teacher.service";
 
 // ==============================
 // GET MY CLASSES
@@ -205,7 +206,7 @@ export const getTeacherTimetableByDateController = async (
       });
     }
 
-    const data = await getTeacherTimetableByDate(teacherId, date);
+    const data = await getTeacherTimetableByDate(teacherId, String(date));
 
     return res.status(200).json({
       success: true,

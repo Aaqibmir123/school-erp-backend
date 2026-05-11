@@ -34,7 +34,14 @@ const scheduleSchema = new Schema(
     teacherId: {
       type: Schema.Types.ObjectId,
       ref: "Teacher",
-      required: true,
+      required: false,
+      index: true,
+    },
+
+    inchargeTeacherId: {
+      type: Schema.Types.ObjectId,
+      ref: "Teacher",
+      default: null,
       index: true,
     },
 

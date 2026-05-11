@@ -12,7 +12,8 @@ export const createSchedule = async (req: any, res: Response) => {
 
 export const getSchedules = async (req: Request, res: Response) => {
   try {
-    const data = await service.getSchedulesService(req.params.examId);
+    const examId = String(req.params.examId || "");
+    const data = await service.getSchedulesService(examId);
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -21,7 +22,12 @@ export const getSchedules = async (req: Request, res: Response) => {
 
 export const updateSchedule = async (req: Request, res: Response) => {
   try {
-    const data = await service.updateScheduleService(req.params.id, req.body);
+    const id = String(req.params.id || "");
+    const data = await service.updateScheduleService(
+      id,
+      req.body,
+      (req as any).user,
+    );
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(400).json({ success: false, message: err.message });
@@ -30,7 +36,7 @@ export const updateSchedule = async (req: Request, res: Response) => {
 
 export const deleteSchedule = async (req: Request, res: Response) => {
   try {
-    await service.deleteScheduleService(req.params.id);
+    await service.deleteScheduleService(String(req.params.id || ""));
     res.json({ success: true, message: "Deleted" });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -49,7 +55,7 @@ export const getClassesWithSubjects = async (req: any, res: Response) => {
 export const publishExam = async (req: any, res: Response) => {
   try {
     const data = await service.publishExamService(
-      req.params.id,
+      String(req.params.id || ""),
       req.user.schoolId,
     );
     res.json({ success: true, data });
@@ -70,8 +76,8 @@ export const getPublishedExams = async (req: any, res: Response) => {
 export const getTeachersBySubject = async (req: any, res: Response) => {
   try {
     const data = await service.getTeachersBySubjectService(
-      req.query.subjectId,
-      req.query.classId,
+      String(req.query.subjectId || ""),
+      String(req.query.classId || ""),
       req.user.schoolId,
     );
     res.json({ success: true, data });

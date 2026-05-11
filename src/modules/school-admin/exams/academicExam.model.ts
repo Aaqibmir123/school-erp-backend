@@ -50,6 +50,24 @@ const academicExamSchema = new Schema(
       index: true,
     },
 
+    marksCardStatus: {
+      type: String,
+      enum: ["draft", "approved"],
+      default: "draft",
+      index: true,
+    },
+
+    marksCardApprovedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    marksCardApprovedAt: {
+      type: Date,
+      default: null,
+    },
+
     createdById: {
       type: Schema.Types.ObjectId,
       required: true,

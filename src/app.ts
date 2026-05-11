@@ -18,21 +18,21 @@ import adminRoutes from "./modules/admin/admin.routes";
 
 /* ================= SCHOOL ADMIN ================= */
 import academicYearRoutes from "./modules/academicYears/academicYear.routes";
+import admitCardRoutes from "./modules/school-admin/admit-cards/admitCard.routes";
 import classRoutes from "./modules/school-admin/classes/class.routes";
+import dashboardRoutes from "./modules/school-admin/dashboard/dashboard.routes";
 import createExamsRoutesByAdmin from "./modules/school-admin/exams/exam.routes";
 import feeAdminRoutes from "./modules/school-admin/Fee/fee.routes";
 import periodRoutes from "./modules/school-admin/periods/period.routes";
 import receiptRoutes from "./modules/school-admin/receipt/receipt.routes";
-import admitCardRoutes from "./modules/school-admin/admit-cards/admitCard.routes";
 import examScheduleRoutesByAdmin from "./modules/school-admin/schedule/schedule.routes";
 import schoolRoutes from "./modules/school-admin/school/school.routes";
 import sectionRoutes from "./modules/school-admin/sections/sections.routes";
 import studentRoutes from "./modules/school-admin/student/student.routes";
 import subjectRoutes from "./modules/school-admin/subjects/subjects.routes";
-import dashboardRoutes from "./modules/school-admin/dashboard/dashboard.routes";
-import transportRoutes from "./modules/school-admin/transport/transport.routes";
 import schoolAdminRoutes from "./modules/school-admin/teacher/teacher.routes";
 import timeTableRoutes from "./modules/school-admin/timetable/timetable.routes";
+import transportRoutes from "./modules/school-admin/transport/transport.routes";
 
 /* ================= TEACHER ================= */
 import midTermAttendanceRoutes from "./modules/acdamicData/attendance/attendance.routes";
@@ -41,8 +41,8 @@ import teacherRoutes from "./modules/teacher/teacher.routes";
 import teacherTimeTablesRoutes from "./teachers/timetable/teacher.routes";
 
 /* ================= STUDENT ================= */
-import studentSideRoutes from "./modules/students/student.route";
 import studentAdmitCardRoutes from "./modules/students/admitCard.routes";
+import studentSideRoutes from "./modules/students/student.route";
 
 /* ================= ACADEMIC ================= */
 import attendanceRoute from "./modules/attendance/attendance.routes";
@@ -50,8 +50,9 @@ import teacherAttendanceRoutes from "./modules/attendance/teacherAttendance.rout
 import createExamRoutes from "./modules/exam/exam.routes";
 import homeworkRoutes from "./modules/homework/homework.route";
 import noticeRoutes from "./modules/notice/notice.routes";
-import teacherResultRoutes from "./modules/result/result.routes";
 import deleteAccountRoutes from "./modules/public/delete-account/deleteAccount.routes";
+import teacherResultRoutes from "./modules/result/result.routes";
+import documentRoutes from "./modules/files/document.routes";
 
 const app = express();
 
@@ -89,7 +90,7 @@ app.use(
 app.use(compression());
 app.use(
   morgan(env.NODE_ENV === "production" ? "combined" : "dev", {
-    skip: (req) => req.path === "/health",
+    skip: (req: any) => req.path === "/health",
   }),
 );
 
@@ -105,18 +106,6 @@ app.use((_, res, next) => {
 /* ================= STATIC FILES ================= */
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-app.use(
-  "/receipts",
-  express.static(path.join(process.cwd(), "public/receipts")),
-);
-app.use(
-  "/marks-cards",
-  express.static(path.join(process.cwd(), "public/marks-cards")),
-);
-app.use(
-  "/admit-cards",
-  express.static(path.join(process.cwd(), "public/admit-cards")),
-);
 
 /* ================= ROUTES ================= */
 
@@ -134,6 +123,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/files", documentRoutes);
 
 app.use("/api/school-admin", schoolAdminRoutes);
 app.use("/api/school-admin/classes", classRoutes);

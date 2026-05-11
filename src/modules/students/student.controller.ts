@@ -5,6 +5,7 @@ import { ApiError } from "../../utils/apiError";
 import { StudentModel } from "../school-admin/student/student.model";
 import {
   getDashboardData,
+  getStudentClassTestRecords,
   getStudentExams,
   getStudentFeesService,
   getStudentSubjectMarks,
@@ -110,6 +111,26 @@ export const getMyMarks = async (
     const data = await getStudentSubjectMarks(req.user.schoolId, studentId);
 
     return successResponse(res, data, "Marks fetched");
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getClassTestRecords = async (
+  req: any,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const studentId = req.query.studentId as string;
+
+    if (!studentId) {
+      throw new ApiError(400, "studentId is required");
+    }
+
+    const data = await getStudentClassTestRecords(req.user.schoolId, studentId);
+
+    return successResponse(res, data, "Class test records fetched");
   } catch (error) {
     return next(error);
   }

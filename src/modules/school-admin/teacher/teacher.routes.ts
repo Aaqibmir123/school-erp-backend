@@ -1,13 +1,13 @@
 import { Router } from "express";
+
 import { authMiddleware } from "../../../middlewares/auth.middleware";
 import { roleMiddleware } from "../../../middlewares/role.middleware";
 import { uploadFile } from "../../../middlewares/upload.middleware";
-import * as teacherController from "./teacher.controller";
 import * as teacherAssignmentController from "./teacherAssignment.controller";
+import * as teacherController from "./teacher.controller";
 
 const router = Router();
 
-// 🔥 CREATE TEACHER
 router.post(
   "/teachers",
   authMiddleware,
@@ -22,24 +22,6 @@ router.get(
   roleMiddleware("SCHOOL_ADMIN"),
   teacherController.getTeachers,
 );
-router.put("/teacher/:id", authMiddleware, teacherController.updateTeacher);
-
-router.get(
-  "/teacher/me",
-  authMiddleware,
-  roleMiddleware("TEACHER"),
-  teacherController.getTeacherProfile,
-);
-
-router.put(
-  "/teacher/me",
-  authMiddleware,
-  roleMiddleware("TEACHER"),
-  uploadFile("teachers").single("profileImage"),
-  teacherController.updateTeacherProfile,
-);
-
-router.delete("/teacher/:id", authMiddleware, teacherController.deleteTeacher);
 
 router.post(
   "/teachers/assign-subject",
@@ -48,38 +30,74 @@ router.post(
   teacherAssignmentController.assignSubject,
 );
 
-// 🔥 SET PASSWORD
-router.post(
-  "/teachers/set-password",
+router.get(
+  "/teachers/:teacherId/assignments",
   authMiddleware,
   roleMiddleware("SCHOOL_ADMIN"),
-  teacherController.setTeachersPassword,
+  teacherAssignmentController.getTeacherAssignments,
 );
 
-// 🔥 CURRENT CLASS (IMPORTANT - ABOVE DYNAMIC)
+router.put(
+  "/teacher/:id",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  teacherController.updateTeacher,
+);
+
+router.patch(
+  "/teacher/:id/status",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  teacherController.updateTeacherStatus,
+);
+
+router.delete(
+  "/teacher/:id",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  teacherController.deleteTeacher,
+);
+
+router.get(
+  "/teacher/me",
+  authMiddleware,
+  roleMiddleware("TEACHER", "SCHOOL_ADMIN"),
+  teacherController.getTeacherProfile,
+);
+
+router.put(
+  "/teacher/me",
+  authMiddleware,
+  roleMiddleware("TEACHER", "SCHOOL_ADMIN"),
+  teacherController.updateTeacherProfile,
+);
+
 router.get(
   "/teacher/current-class",
   authMiddleware,
+  roleMiddleware("TEACHER"),
   teacherController.getCurrentClassController,
-);
-
-// 🔥 TEACHER ASSIGNMENTS
-router.get(
-  "/teacher/:teacherId",
-  authMiddleware,
-  teacherAssignmentController.getTeacherAssignments,
 );
 
 router.get(
   "/teacher/timetable",
   authMiddleware,
+  roleMiddleware("TEACHER"),
   teacherController.getTeacherTimetableByDateController,
 );
 
-router.get("/by-class", authMiddleware, teacherController.getTeachersByClass);
+router.get(
+  "/by-class",
+  authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
+  teacherController.getTeachersByClass,
+);
+
 router.delete(
   "/assignments/:assignmentId",
   authMiddleware,
+  roleMiddleware("SCHOOL_ADMIN"),
   teacherAssignmentController.removeTeacherSubjectController,
 );
+
 export default router;

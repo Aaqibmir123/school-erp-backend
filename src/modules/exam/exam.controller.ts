@@ -51,7 +51,7 @@ export const getMyExams = async (req: any, res: Response) => {
 export const updateExam = async (req: Request, res: Response) => {
   try {
     validateUpdateExam(req.body, req.user?.role);
-    const exam = await updateExamService(req.params.id, req.body);
+    const exam = await updateExamService(String(req.params.id || ""), req.body);
     return successResponse(res, exam, "Exam updated");
   } catch (err: any) {
     return errorResponse(res, err.message);
@@ -61,7 +61,7 @@ export const updateExam = async (req: Request, res: Response) => {
 /* ================= DELETE ================= */
 export const deleteExam = async (req: Request, res: Response) => {
   try {
-    await deleteExamService(req.params.id);
+    await deleteExamService(String(req.params.id || ""));
     return successResponse(res, null, "Exam deleted");
   } catch (err: any) {
     return errorResponse(res, err.message);

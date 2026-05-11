@@ -49,7 +49,7 @@ export const generateReceiptPDF = async (data: any) => {
 
     console.log("PDF generated successfully");
 
-    return `/receipts/${fileName}`;
+    return `/api/files/receipts/${fileName}`;
   } catch (error) {
     console.error("PDF GENERATION ERROR:", error);
     throw error;

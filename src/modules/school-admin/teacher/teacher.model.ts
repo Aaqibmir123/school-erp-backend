@@ -58,7 +58,7 @@ const TeacherSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["active", "inactive"],
+      enum: ["active", "inactive", "disabled"],
       default: "active",
     },
 
@@ -74,7 +74,8 @@ const TeacherSchema = new Schema(
 /* INDEXES */
 
 TeacherSchema.index({ schoolId: 1 });
-TeacherSchema.index({ email: 1 });
+TeacherSchema.index({ schoolId: 1, email: 1 });
+TeacherSchema.index({ schoolId: 1, phone: 1 });
 TeacherSchema.index({ subjectIds: 1 });
 
 export const TeacherModel =

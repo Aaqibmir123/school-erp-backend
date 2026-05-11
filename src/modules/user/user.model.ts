@@ -6,6 +6,7 @@ export enum UserRole {
   TEACHER = "TEACHER",
   PARENT = "PARENT",
   STUDENT = "STUDENT",
+  REVIEWER = "REVIEWER",
 }
 
 const userSchema = new mongoose.Schema(
@@ -51,6 +52,12 @@ const userSchema = new mongoose.Schema(
     schoolId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "School",
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "disabled"],
+      default: "active",
     },
   },
   { timestamps: true },

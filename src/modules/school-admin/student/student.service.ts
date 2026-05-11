@@ -38,6 +38,7 @@ export const createStudentService = async (
     schoolId,
     academicYearId,
     parentUserId: parentUser._id,
+    status: "active",
   });
 
   return student;
@@ -50,6 +51,8 @@ export const getStudentsService = async (schoolId: string, query: any) => {
   const classId = typeof query.classId === "string" ? query.classId.trim() : "";
   const sectionId =
     typeof query.sectionId === "string" ? query.sectionId.trim() : "";
+  const status =
+    typeof query.status === "string" ? query.status.trim().toLowerCase() : "";
 
   const skip = (page - 1) * limit;
 
@@ -61,6 +64,10 @@ export const getStudentsService = async (schoolId: string, query: any) => {
 
   if (sectionId) {
     filter.sectionId = sectionId;
+  }
+
+  if (status && ["active", "disabled"].includes(status)) {
+    filter.status = status;
   }
 
   if (search) {
@@ -96,6 +103,7 @@ export const getStudentsByClassService = async (
   const filter: any = {
     schoolId,
     classId,
+    status: "active",
   };
 
   if (sectionId) {
@@ -159,6 +167,7 @@ export const getAllStudentsByClassService = async (
   const query: any = {
     schoolId,
     classId,
+    status: "active",
   };
 
   if (sectionId) {
@@ -224,6 +233,25 @@ export const getStudentByIdService = async (
   if (!student) {
     throw new Error("Student not found");
   }
+
+  return student;
+};
+
+export const updateStudentStatusService = async (
+  schoolId: string,
+  studentId: string,
+  status: "active" | "disabled",
+) => {
+  const student = await StudentModel.findOneAndUpdate(
+    { _id: studentId, schoolId },
+    { $set: { status } },
+    { new: true },
+  )
+    .populate("classId", "name")
+    .populate("sectionId", "name")
+    .lean();
+
+  if (!student) throw new Error("Student not found");
 
   return student;
 };

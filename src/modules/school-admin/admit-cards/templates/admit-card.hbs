@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admit Card</title>
+    <style>
+      * { box-sizing: border-box; }
+      @page { size: A4; margin: 0; }
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f4f7fb;
+        color: #0f172a;
+      }
+      .sheet {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        padding: 12mm 10mm 10mm;
+      }
+      .card {
+        border: 2px solid #1d4ed8;
+        border-radius: 16px;
+        background: #fff;
+        padding: 12px;
+      }
+      .top {
+        display: grid;
+        grid-template-columns: 64px 1fr 64px;
+        gap: 12px;
+        align-items: center;
+        border-bottom: 1px solid #dbeafe;
+        padding-bottom: 10px;
+      }
+      .logo, .seal {
+        width: 64px;
+        height: 64px;
+        border-radius: 14px;
+        object-fit: cover;
+      }
+      .head-center {
+        text-align: center;
+      }
+      .school-name {
+        font-size: 18px;
+        font-weight: 800;
+        color: #0f172a;
+        margin: 0;
+      }
+      .school-meta {
+        font-size: 10px;
+        color: #475569;
+        line-height: 1.5;
+        margin-top: 5px;
+      }
+      .title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 12px;
+      }
+      .title {
+        font-size: 19px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        color: #1d4ed8;
+        margin: 0;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 12px;
+        margin-top: 10px;
+      }
+      .panel {
+        border: 1px solid #dbeafe;
+        border-radius: 16px;
+        background: #fbfdff;
+        padding: 12px;
+      }
+      .section-title {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .4px;
+        color: #1d4ed8;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      .student-grid {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .photo {
+        width: 88px;
+        height: 104px;
+        border-radius: 14px;
+        border: 1px solid #cbd5e1;
+        object-fit: cover;
+        background: #eef4ff;
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+      }
+      .detail {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 8px 10px;
+        background: #fff;
+      }
+      .label {
+        font-size: 9px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        margin-bottom: 4px;
+      }
+      .value {
+        font-size: 11px;
+        font-weight: 700;
+        color: #0f172a;
+      }
+      .split {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .exam-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        overflow: hidden;
+        border-radius: 14px;
+      }
+      .exam-table th, .exam-table td {
+        border: 1px solid #dbeafe;
+        padding: 8px 7px;
+        font-size: 10px;
+      }
+      .exam-table th {
+        background: #eff6ff;
+        color: #1e3a8a;
+        text-align: left;
+        font-weight: 800;
+      }
+      .exam-table td {
+        color: #0f172a;
+      }
+      .notes {
+        margin-top: 10px;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 10px;
+      }
+      .notes ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .notes li {
+        margin-bottom: 5px;
+        font-size: 11px;
+        color: #334155;
+      }
+      .footer {
+        display: grid;
+        grid-template-columns: 74px 1fr 140px;
+        gap: 10px;
+        align-items: end;
+        margin-top: 12px;
+      }
+      .footer-note {
+        text-align: center;
+        font-size: 10px;
+        color: #64748b;
+      }
+      .footer-sign {
+        text-align: center;
+      }
+      .sign-img {
+        width: 140px;
+        height: 54px;
+        object-fit: contain;
+      }
+      .signature-label {
+        margin-top: 4px;
+        font-size: 10px;
+        font-weight: 800;
+        color: #1e293b;
+      }
+      .small {
+        font-size: 10px;
+        color: #64748b;
+      }
+      .stamp {
+        display: flex;
+        justify-content: center;
+      }
+      .stamp img {
+        width: 70px;
+        height: 70px;
+        object-fit: cover;
+      }
+      .meta-inline {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .meta-chip {
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #334155;
+        padding: 6px 10px;
+        font-size: 9px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <div class="card">
+        <div class="top">
+          <img class="logo" src="{{schoolLogo}}" alt="School Logo" />
+          <div class="head-center">
+            <h1 class="school-name">{{schoolName}}</h1>
+            <div class="school-meta">
+              {{schoolAddress}}<br />
+              {{schoolPhone}} | {{schoolEmail}}
+            </div>
+          </div>
+          <div class="stamp">
+            <img class="seal" src="{{sealImage}}" alt="School Seal" />
+          </div>
+        </div>
+
+        <div class="title-row">
+          <div>
+            <h2 class="title">EXAM ADMIT CARD</h2>
+            <div class="meta-inline">
+              <div class="meta-chip">Exam: {{examName}}</div>
+              <div class="meta-chip">Type: {{examType}}</div>
+              <div class="meta-chip">Session: {{session}}</div>
+              <div class="meta-chip">Class: {{className}}</div>
+              <div class="meta-chip">Roll No: {{rollNumber}}</div>
+              <div class="meta-chip">Incharge: {{examIncharge}}</div>
+            </div>
+          </div>
+          <div class="badge">Class: {{className}}</div>
+        </div>
+
+        <div class="info-grid">
+          <div class="panel">
+            <div class="section-title">Student Details</div>
+            <div class="student-grid">
+              <img class="photo" src="{{studentPhoto}}" alt="Student Photo" />
+              <div class="detail-grid">
+                <div class="detail">
+                  <div class="label">Student Name</div>
+                  <div class="value">{{studentName}}</div>
+                </div>
+                <div class="detail">
+                  <div class="label">Father Name</div>
+                  <div class="value">{{fatherName}}</div>
+                </div>
+                <div class="detail">
+                  <div class="label">Class</div>
+                  <div class="value">{{className}}</div>
+                </div>
+                <div class="detail">
+                  <div class="label">Section</div>
+                  <div class="value">{{sectionName}}</div>
+                </div>
+                <div class="detail">
+                  <div class="label">Admission No</div>
+                  <div class="value">{{admissionNo}}</div>
+                </div>
+                <div class="detail">
+                  <div class="label">Parent Phone</div>
+                  <div class="value">{{parentPhone}}</div>
+                </div>
+                <div class="detail" style="grid-column: span 2;">
+                  <div class="label">Address</div>
+                  <div class="value">{{address}}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="section-title">Exam Info</div>
+            <div class="split">
+              <div class="detail">
+                <div class="label">Class</div>
+                <div class="value">{{className}}</div>
+              </div>
+              <div class="detail">
+                <div class="label">Exam Code</div>
+                <div class="value">{{examCode}}</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 10px;" class="detail">
+              <div class="label">Exam Date Range</div>
+              <div class="value">{{examDateRange}}</div>
+            </div>
+
+            <div style="margin-top: 10px;" class="detail">
+              <div class="label">Exam Incharge</div>
+              <div class="value">{{examIncharge}}</div>
+            </div>
+
+            <div style="margin-top: 10px;" class="detail">
+              <div class="label">Release Note</div>
+              <div class="value">{{releaseNote}}</div>
+            </div>
+          </div>
+        </div>
+
+        <table class="exam-table">
+          <thead>
+            <tr>
+              <th style="width: 40px;">#</th>
+              <th>Subject</th>
+              <th>Class</th>
+              <th>Section</th>
+              <th>Date</th>
+              <th>Day</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each subjects}}
+              <tr>
+                <td>{{@index}}</td>
+                <td>{{subjectName}}</td>
+                <td>{{className}}</td>
+                <td>{{sectionName}}</td>
+                <td>{{date}}</td>
+                <td>{{day}}</td>
+                <td>{{startTime}} - {{endTime}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+
+        <div class="notes">
+          <div class="section-title" style="margin-bottom: 8px;">Instructions</div>
+          <ul>
+            {{#each instructions}}
+              <li>{{this}}</li>
+            {{/each}}
+          </ul>
+        </div>
+
+        <div class="footer">
+          <div class="stamp">
+            <img class="seal" src="{{sealImage}}" alt="School Seal" />
+          </div>
+          <div class="footer-note">
+            <div class="small">This is a computer generated admit card.</div>
+            <div class="small">Carry this card at the time of examination.</div>
+          </div>
+          <div class="footer-sign">
+            <img class="sign-img" src="{{signatureImage}}" alt="Authority Signature" />
+            <div class="signature-label">Authorized Signatory</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -101,3 +101,30 @@ export const deleteExamService = async ({ id, user }: any) => {
 
   return true;
 };
+
+/* ================= MARKS CARD APPROVAL ================= */
+export const toggleMarksCardApprovalService = async ({
+  id,
+  user,
+  approved,
+}: any) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new Error("Invalid exam id");
+  }
+
+  const exam = await academicExamModel.findOneAndUpdate(
+    { _id: id, schoolId: user.schoolId },
+    {
+      marksCardStatus: approved ? "approved" : "draft",
+      marksCardApprovedBy: approved ? (user._id || user.id) : null,
+      marksCardApprovedAt: approved ? new Date() : null,
+    },
+    { new: true },
+  );
+
+  if (!exam) {
+    throw new Error("Exam not found");
+  }
+
+  return exam;
+};

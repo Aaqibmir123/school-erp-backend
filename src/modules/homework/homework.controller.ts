@@ -88,6 +88,7 @@ export const deleteHomework = async (req: any, res: Response) => {
 export const getStudentHomework = async (req: any, res: Response) => {
   try {
     const { schoolId, role, id, phone } = req.user;
+    const isReviewer = String(role || "").toUpperCase() === "REVIEWER";
 
     let student: any = null;
 
@@ -102,7 +103,7 @@ export const getStudentHomework = async (req: any, res: Response) => {
     }
 
     /* ================= PARENT ================= */
-    if (role === "PARENT") {
+    if (role === "PARENT" || isReviewer) {
       // ⚠️ default first child
       student = await StudentModel.findOne({
         parentPhone: phone,
@@ -123,6 +124,7 @@ export const getStudentHomework = async (req: any, res: Response) => {
       schoolId,
       student.classId.toString(),
       student.sectionId?.toString(),
+      student._id.toString(),
     );
 
     return res.json({

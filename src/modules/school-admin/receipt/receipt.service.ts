@@ -56,7 +56,7 @@ export const generateReceiptService = async ({
 
   /* ================= FETCH STUDENT ================= */
 
-  const student = await StudentModel.findById(studentId).lean();
+  const student: any = await StudentModel.findById(studentId).lean();
 
   if (!student) {
     throw new Error("Student not found");
@@ -74,7 +74,7 @@ export const generateReceiptService = async ({
 
   /* ================= FETCH CLASS ================= */
 
-  const classData = await ClassModel.findById(student.classId).lean();
+  const classData: any = await ClassModel.findById(student.classId).lean();
 
   /* ================= FETCH SECTION ================= */
 
@@ -120,6 +120,7 @@ export const generateReceiptService = async ({
 
     studentName,
     fatherName: student.fatherName || "N/A",
+    rollNumber: student.rollNumber ?? "N/A",
     address: student.address || "N/A",
 
     className: classData?.name || "N/A",

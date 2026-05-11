@@ -1,5 +1,6 @@
 import express from "express";
 
+import { authMiddleware } from "../../middlewares/auth.middleware";
 import { roleMiddleware } from "../../middlewares/role.middleware";
 import {
   getTeacherAttendanceForAdmin,
@@ -10,6 +11,8 @@ import {
 } from "./teacherAttendance.controller";
 
 const router = express.Router();
+
+router.use(authMiddleware);
 
 router.post("/self/check-in", roleMiddleware("TEACHER"), markTeacherCheckIn);
 router.post("/self/check-out", roleMiddleware("TEACHER"), markTeacherCheckOut);

@@ -7,7 +7,7 @@ import {
 
 export const saveBulkMarks = async (req: Request, res: Response) => {
   try {
-    const user = req.user;
+    const user = req.user as any;
     const data = req.body;
 
     if (!data.examId || !data.subjectId || !data.classId) {

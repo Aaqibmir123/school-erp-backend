@@ -1,31 +1,68 @@
-import fs from "fs";
-import multer from "multer";
 import path from "path";
+import multer from "multer";
 
-const baseUploadPath = path.join(__dirname, "../../uploads");
+const DEFAULT_FILE_SIZE_LIMIT = 5 * 1024 * 1024;
 
-fs.mkdirSync(baseUploadPath, { recursive: true });
+const FILE_RULES: Record<
+  string,
+  { extensions: string[]; mimeTypes: string[] }
+> = {
+  school: {
+    extensions: [".jpg", ".jpeg", ".png", ".svg", ".webp"],
+    mimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/svg+xml",
+      "image/webp",
+    ],
+  },
+  students: {
+    extensions: [".jpg", ".jpeg", ".png", ".webp"],
+    mimeTypes: ["image/jpeg", "image/png", "image/webp"],
+  },
+  teachers: {
+    extensions: [".jpg", ".jpeg", ".png", ".webp"],
+    mimeTypes: ["image/jpeg", "image/png", "image/webp"],
+  },
+  "student-bulk": {
+    extensions: [".csv", ".xls", ".xlsx"],
+    mimeTypes: [
+      "text/csv",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ],
+  },
+};
 
-const createStorage = (folderName: string) =>
-  multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadPath = path.join(baseUploadPath, folderName);
-      fs.mkdirSync(uploadPath, { recursive: true });
-      cb(null, uploadPath);
-    },
+const normalizeExtension = (fileName: string) =>
+  path.extname(fileName || "").toLowerCase();
 
-    filename: (req, file, cb) => {
-      const uniqueName =
-        Date.now() + "-" + file.originalname.replace(/\s/g, "_");
-      cb(null, uniqueName);
-    },
-  });
+const createFileFilter = (folderName: string): multer.Options["fileFilter"] => {
+  const rules = FILE_RULES[folderName];
 
-// ✅ GENERIC UPLOAD
+  if (!rules) {
+    return (_req, _file, cb) => cb(null, true);
+  }
+
+  return (_req, file, cb) => {
+    const extension = normalizeExtension(file.originalname);
+    const mimeType = String(file.mimetype || "").toLowerCase();
+    const extensionAllowed = rules.extensions.includes(extension);
+    const mimeAllowed = rules.mimeTypes.includes(mimeType);
+
+    if (!extensionAllowed || !mimeAllowed) {
+      return cb(new Error("Unsupported file type"));
+    }
+
+    return cb(null, true);
+  };
+};
+
 export const uploadFile = (folderName: string) =>
   multer({
-    storage: createStorage(folderName),
+    storage: multer.memoryStorage(),
     limits: {
-      fileSize: 5 * 1024 * 1024,
+      fileSize: DEFAULT_FILE_SIZE_LIMIT,
     },
+    fileFilter: createFileFilter(folderName),
   });

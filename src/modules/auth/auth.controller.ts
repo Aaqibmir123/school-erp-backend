@@ -47,7 +47,7 @@ const readRefreshToken = (req: Request) => {
     .map((item) => item.trim())
     .find((item) => item.startsWith(`${REFRESH_COOKIE_NAME}=`));
 
-  if (!match) return req.body.refreshToken as string | undefined;
+  if (!match) return req.body?.refreshToken as string | undefined;
 
   return decodeURIComponent(match.split("=").slice(1).join("="));
 };
@@ -66,7 +66,7 @@ export const checkUser = async (
   }
 };
 
-/* ================= SEND OTP ================= */
+/* ==============;=== SEND OTP ================= */
 export const sendOtp = async (
   req: Request,
   res: Response,

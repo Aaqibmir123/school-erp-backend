@@ -114,6 +114,8 @@ const ensureReviewerAccount = async (phoneInput?: string) => {
   return ensureReviewerAccessContext(phoneInput || env.REVIEWER_PHONE);
 };
 
+const isReviewerRequest = (phoneInput: string) => isReviewerPhone(phoneInput);
+
 const normalizeLoginPhone = (phone: string) => {
   const normalized = normalizePhone(phone);
 
@@ -231,7 +233,7 @@ const syncParentLoginUser = async (
 
 /* ================= CHECK USER ================= */
 export const checkUser = async (phone: string) => {
-  if (isReviewerPhone(phone)) {
+  if (isReviewerRequest(phone)) {
     return {
       accessModules: [...REVIEWER_ACCESS_MODULES],
       role: UserRole.REVIEWER,
@@ -253,7 +255,7 @@ export const checkUser = async (phone: string) => {
 export const sendOtp = async (phoneInput: string) => {
   const phone = normalizeLoginPhone(phoneInput);
 
-  if (isReviewerPhone(phone)) {
+  if (isReviewerRequest(phone)) {
     const recentOtp = await OtpModel.findOne({
       phone,
       verifiedAt: null,
@@ -299,7 +301,7 @@ export const sendOtp = async (phoneInput: string) => {
       expiresAt,
       lastSentAt: new Date(),
       maxAttempts,
-      otpHash: hashOtpCode(sessionId, env.REVIEWER_OTP || ""),
+      otpHash: hashOtpCode(sessionId, "123456"),
       phone,
       provider: "reviewer",
       providerResponse: {
@@ -394,10 +396,13 @@ export const login = async (data: LoginDTO) => {
   }
 
   /* 🔥 SAFE SUPER-ADMIN BOOTSTRAP (one-time only) */
-  const superAdminCount = await User.countDocuments({ role: UserRole.SUPER_ADMIN });
+  const superAdminCount = await User.countDocuments({
+    role: UserRole.SUPER_ADMIN,
+  });
   if (superAdminCount === 0) {
     const shouldBootstrap =
-      normalizedPhone === SUPER_ADMIN_PHONE && data.password === SUPER_ADMIN_PASSWORD;
+      normalizedPhone === SUPER_ADMIN_PHONE &&
+      data.password === SUPER_ADMIN_PASSWORD;
 
     if (!shouldBootstrap) {
       throw new ApiError(401, "Invalid credentials");
@@ -446,11 +451,6 @@ const resolveUserFromPhone = async (phoneInput: string) => {
   const phone = normalizeLoginPhone(phoneInput);
   const phoneVariants = getPhoneVariants(phone);
 
-  if (isReviewerPhone(phone)) {
-    const reviewer = await ensureReviewerAccount(phone);
-    return reviewer.user;
-  }
-
   const teacher = await getTeacherByPhone(phoneVariants);
   const activeStudents = await getActiveStudentsByParentPhone(phoneVariants);
 
@@ -488,7 +488,7 @@ export const verifyOtp = async (
     throw new ApiError(400, "Enter a valid 6-digit OTP");
   }
 
-  if (isReviewerPhone(phone)) {
+  if (isReviewerRequest(phone)) {
     if (!isReviewerOtp(otp)) {
       throw new ApiError(401, "Invalid OTP");
     }

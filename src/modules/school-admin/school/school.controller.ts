@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as schoolService from "./school.service";
+import { uploadBufferToCloudinary } from "../../../utils/cloudinary";
 
 export const getSchool = async (req: Request, res: Response) => {
   try {
@@ -8,11 +9,6 @@ export const getSchool = async (req: Request, res: Response) => {
   } catch {
     res.status(500).json({ message: "Error fetching school" });
   }
-};
-
-// 🔥 helper function
-const cleanPath = (filePath: string) => {
-  return filePath.split("uploads")[1].replace(/\\/g, "/");
 };
 
 const isValidTime = (value?: string) =>
@@ -70,6 +66,16 @@ const validateTimeOrder = (data: {
   }
 };
 
+const TIMING_FIELDS = [
+  "checkInOpenTime",
+  "schoolStartTime",
+  "lateMarkAfterTime",
+  "checkInCloseTime",
+  "schoolEndTime",
+  "checkOutCloseTime",
+  "workingDays",
+] as const;
+
 export const saveSchool = async (req: Request, res: Response) => {
   try {
     const {
@@ -84,51 +90,66 @@ export const saveSchool = async (req: Request, res: Response) => {
       workingDays,
     } = req.body;
 
-    validateTimeOrder({
-      checkInOpenTime,
-      schoolStartTime,
-      lateMarkAfterTime,
-      checkInCloseTime,
-      schoolEndTime,
-      checkOutCloseTime,
-    });
+    const hasTimingUpdate = TIMING_FIELDS.some((field) =>
+      Object.prototype.hasOwnProperty.call(req.body, field),
+    );
+
+    if (hasTimingUpdate) {
+      const existingSchool = await schoolService.getSchoolProfile(req.user.schoolId);
+
+      validateTimeOrder({
+        checkInOpenTime: checkInOpenTime ?? existingSchool?.checkInOpenTime,
+        schoolStartTime: schoolStartTime ?? existingSchool?.schoolStartTime,
+        lateMarkAfterTime: lateMarkAfterTime ?? existingSchool?.lateMarkAfterTime,
+        checkInCloseTime: checkInCloseTime ?? existingSchool?.checkInCloseTime,
+        schoolEndTime: schoolEndTime ?? existingSchool?.schoolEndTime,
+        checkOutCloseTime: checkOutCloseTime ?? existingSchool?.checkOutCloseTime,
+      });
+    }
 
     const files = req.files as {
       [fieldname: string]: Express.Multer.File[];
     };
 
     const data: any = {
-      name,
-      address,
       schoolId: req?.user?.schoolId,
-      checkInOpenTime,
-      schoolStartTime,
-      lateMarkAfterTime,
-      checkInCloseTime,
-      schoolEndTime,
-      checkOutCloseTime,
-      workingDays: typeof workingDays === "string"
-        ? (() => {
-            try {
-              return JSON.parse(workingDays);
-            } catch {
-              return [];
-            }
-          })()
-        : workingDays,
     };
 
+    if (name !== undefined) data.name = name;
+    if (address !== undefined) data.address = address;
+    if (checkInOpenTime !== undefined) data.checkInOpenTime = checkInOpenTime;
+    if (schoolStartTime !== undefined) data.schoolStartTime = schoolStartTime;
+    if (lateMarkAfterTime !== undefined) data.lateMarkAfterTime = lateMarkAfterTime;
+    if (checkInCloseTime !== undefined) data.checkInCloseTime = checkInCloseTime;
+    if (schoolEndTime !== undefined) data.schoolEndTime = schoolEndTime;
+    if (checkOutCloseTime !== undefined) data.checkOutCloseTime = checkOutCloseTime;
+    if (workingDays !== undefined) {
+      data.workingDays =
+        typeof workingDays === "string"
+          ? (() => {
+              try {
+                return JSON.parse(workingDays);
+              } catch {
+                return [];
+              }
+            })()
+          : workingDays;
+    }
+
     // 🔥 FIX PATHS HERE
-    if (files?.logo) {
-      data.logo = `/uploads${cleanPath(files.logo[0].path)}`;
+    if (files?.logo?.[0]) {
+      data.logo = await uploadBufferToCloudinary(files.logo[0], "school/logo");
     }
 
-    if (files?.signature) {
-      data.signature = `/uploads${cleanPath(files.signature[0].path)}`;
+    if (files?.signature?.[0]) {
+      data.signature = await uploadBufferToCloudinary(
+        files.signature[0],
+        "school/signature",
+      );
     }
 
-    if (files?.seal) {
-      data.seal = `/uploads${cleanPath(files.seal[0].path)}`;
+    if (files?.seal?.[0]) {
+      data.seal = await uploadBufferToCloudinary(files.seal[0], "school/seal");
     }
 
     const school = await schoolService.upsertSchoolProfile(

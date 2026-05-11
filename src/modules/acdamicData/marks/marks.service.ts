@@ -2,6 +2,8 @@ import Mark from "./marks.model";
 import { AuthUser, BulkMarksInput } from "./marks.types";
 
 import mongoose from "mongoose";
+import Exam from "../../exam/exam.model";
+import academicExamModel from "../../school-admin/exams/academicExam.model";
 import { StudentModel } from "../../school-admin/student/student.model";
 
 const parseSafeNumber = (value: any) => {
@@ -9,9 +11,13 @@ const parseSafeNumber = (value: any) => {
   return Number.isFinite(num) ? num : null;
 };
 
-const validateBulkMarkItem = (item: any, index: number) => {
+const validateBulkMarkItem = (item: any, index: number, examTotalMarks: number) => {
   if (!item?.studentId) {
     throw new Error(`Student is required for row ${index + 1}`);
+  }
+
+  if (item.marks === null || item.marks === undefined || item.marks === "") {
+    return;
   }
 
   const marks = parseSafeNumber(item.marks);
@@ -20,9 +26,50 @@ const validateBulkMarkItem = (item: any, index: number) => {
     throw new Error(`Enter valid marks for row ${index + 1}`);
   }
 
-  if (marks < 0 || marks > 999) {
-    throw new Error(`Marks must be between 0 and 999 for row ${index + 1}`);
+  if (marks < 0) {
+    throw new Error(`Marks cannot be negative for row ${index + 1}`);
   }
+
+  if (marks > examTotalMarks) {
+    throw new Error(
+      `Marks cannot exceed exam total marks (${examTotalMarks}) for row ${index + 1}`,
+    );
+  }
+};
+
+const normalizeFeedback = (value: any) =>
+  typeof value === "string" ? value.trim().slice(0, 250) : "";
+
+const resolveTeacherNameSnapshot = (user: AuthUser) => {
+  const first = (user as any)?.firstName || "";
+  const last = (user as any)?.lastName || "";
+  const fullName = `${first} ${last}`.trim();
+
+  if (fullName) return fullName;
+
+  return (user as any)?.name || (user as any)?.fullName || "";
+};
+
+const getExamTotalMarks = async (examId: string, schoolId: string) => {
+  const examObjectId = new mongoose.Types.ObjectId(examId);
+  const schoolObjectId = new mongoose.Types.ObjectId(schoolId);
+
+  const exam =
+    (await Exam.findOne({ _id: examObjectId, schoolId: schoolObjectId })
+      .select("totalMarks examType name")
+      .lean()) ||
+    (await academicExamModel.findOne({ _id: examObjectId, schoolId: schoolObjectId })
+      .select("totalMarks examType name")
+      .lean());
+
+  if (!exam) {
+    throw new Error("Exam not found");
+  }
+
+  return {
+    exam,
+    totalMarks: Number(exam.totalMarks || 0),
+  };
 };
 
 export const upsertBulkMarks = async (data: BulkMarksInput, user: AuthUser) => {
@@ -36,7 +83,16 @@ export const upsertBulkMarks = async (data: BulkMarksInput, user: AuthUser) => {
     throw new Error("Marks list is required");
   }
 
-  marks.forEach((item, index) => validateBulkMarkItem(item, index));
+  const { totalMarks: examTotalMarks } = await getExamTotalMarks(
+    examId,
+    user.schoolId,
+  );
+
+  if (!examTotalMarks || examTotalMarks <= 0) {
+    throw new Error("Exam total marks not set");
+  }
+
+  marks.forEach((item, index) => validateBulkMarkItem(item, index, examTotalMarks));
 
   const studentIds = marks.map((item) => new mongoose.Types.ObjectId(item.studentId));
   const students = await StudentModel.find({
@@ -57,17 +113,19 @@ export const upsertBulkMarks = async (data: BulkMarksInput, user: AuthUser) => {
         examId: new mongoose.Types.ObjectId(examId),
         subjectId: new mongoose.Types.ObjectId(subjectId),
       },
-      update: {
-        $set: {
-          marks: item.marks,
-          classId: new mongoose.Types.ObjectId(classId),
-          sectionId: sectionId ? new mongoose.Types.ObjectId(sectionId) : null,
-          schoolId: new mongoose.Types.ObjectId(user.schoolId),
-          teacherId: new mongoose.Types.ObjectId(user._id),
-          rollNumberSnapshot:
-            studentMap.get(item.studentId)?.rollNumber || null,
+        update: {
+          $set: {
+            marks: Number(item.marks),
+            feedback: normalizeFeedback(item.feedback),
+            classId: new mongoose.Types.ObjectId(classId),
+            sectionId: sectionId ? new mongoose.Types.ObjectId(sectionId) : null,
+            schoolId: new mongoose.Types.ObjectId(user.schoolId),
+            teacherId: new mongoose.Types.ObjectId(user._id),
+            teacherNameSnapshot: resolveTeacherNameSnapshot(user),
+            rollNumberSnapshot:
+              studentMap.get(item.studentId)?.rollNumber || null,
+          },
         },
-      },
       upsert: true,
     },
   }));
@@ -82,7 +140,9 @@ export const getMarksByExam = async (
   subjectId: string,
   classId: string,
 ) => {
-  return Mark.find({ examId, subjectId, classId }).lean();
+  return Mark.find({ examId, subjectId, classId })
+    .select("studentId marks feedback")
+    .lean();
 };
 
 export const getMarksHistory = async ({
@@ -162,6 +222,7 @@ export const getMarksHistory = async ({
       .populate("studentId", "firstName lastName rollNumber classId sectionId")
       .populate("subjectId", "name")
       .populate("examId", "name examType totalMarks startDate endDate")
+      .select("feedback marks studentId examId subjectId classId sectionId schoolId teacherId rollNumberSnapshot createdAt updatedAt")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)

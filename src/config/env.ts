@@ -7,7 +7,7 @@ const envSchema = z.object({
   CLIENT_URLS: z
     .string()
     .default(
-      "http://localhost:3000,http://localhost:8081,https://aaqib-school-erp-admin.vercel.app,https://smartschoolerp.co.in,https://www.smartschoolerp.co.in",
+      "https://smartschoolerp.co.in,https://www.smartschoolerp.co.in,http://localhost:3000,http://localhost:8081",
     ),
   CLOUDINARY_API_KEY: z.string().optional().default(""),
   CLOUDINARY_API_SECRET: z.string().optional().default(""),
@@ -18,20 +18,18 @@ const envSchema = z.object({
   OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
   OTP_RESEND_SECONDS: z.coerce.number().int().positive().default(60),
   OTP_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+  ENABLE_REVIEWER_LOGIN: z.string().optional().default("false"),
   REVIEWER_OTP: z.string().optional().default(""),
   REVIEWER_PHONE: z.string().optional().default(""),
   TWO_FACTOR_API_KEY: z.string().min(1, "TWO_FACTOR_API_KEY is required"),
-  TWO_FACTOR_BASE_URL: z
-    .string()
-    .url()
-    .default("https://2factor.in/API/V1"),
+  TWO_FACTOR_BASE_URL: z.string().url().default("https://2factor.in/API/V1"),
   REFRESH_JWT_SECRET: z.string().min(1, "REFRESH_JWT_SECRET is required"),
   WEB_APP_URL: z
     .string()
     .url()
     .optional()
     .or(z.literal(""))
-    .default("https://aaqib-school-erp-admin.vercel.app"),
+    .default("https://smartschoolerp.co.in"),
   SUPER_ADMIN_PASSWORD: z.string().min(1, "SUPER_ADMIN_PASSWORD is required"),
   SUPER_ADMIN_PHONE: z.string().min(1, "SUPER_ADMIN_PHONE is required"),
   JWT_SECRET: z.string().min(1, "JWT_SECRET is required"),
@@ -56,6 +54,7 @@ export const env = {
   ),
   REVIEWER_OTP: cleanSecretValue(parsedEnv.REVIEWER_OTP),
   REVIEWER_PHONE: cleanSecretValue(parsedEnv.REVIEWER_PHONE),
+  ENABLE_REVIEWER_LOGIN: parsedEnv.ENABLE_REVIEWER_LOGIN === "true",
   TWO_FACTOR_API_KEY: cleanSecretValue(parsedEnv.TWO_FACTOR_API_KEY),
   clientOrigins: parsedEnv.CLIENT_URLS.split(",")
     .map((origin) => origin.trim())
