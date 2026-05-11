@@ -66,6 +66,38 @@ export const checkUser = async (
   }
 };
 
+/* ================= SEND OTP ================= */
+export const sendOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const data = await authService.sendOtp(req.body.phone);
+    return successResponse(res, data, "OTP sent");
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/* ================= VERIFY OTP ================= */
+export const verifyOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const data = await authService.verifyOtp(
+      req.body.phone,
+      req.body.otp,
+      req.body.sessionId,
+    );
+    return successResponse(res, data, "OTP verified");
+  } catch (error) {
+    return next(error);
+  }
+};
+
 
 /* ================= PASSWORD LOGIN ================= */
 export const login = async (

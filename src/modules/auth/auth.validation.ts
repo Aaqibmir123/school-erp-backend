@@ -10,6 +10,10 @@ export const checkUserSchema = z.object({
   phone: phoneSchema,
 });
 
+export const sendOtpSchema = z.object({
+  phone: phoneSchema,
+});
+
 export const loginSchema = z
   .object({
     address: z.string().trim().min(5, "Address is required"),
@@ -35,6 +39,12 @@ export const loginSchema = z
 export const setPasswordSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   token: z.string().min(10, "Token is required"),
+});
+
+export const verifyOtpSchema = z.object({
+  otp: z.string().trim().regex(/^\d{6}$/, "Enter a valid 6-digit OTP"),
+  phone: phoneSchema,
+  sessionId: z.string().trim().min(10, "Session ID is required"),
 });
 
 export const applySchoolSchema = z.object({
