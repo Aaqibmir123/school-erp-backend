@@ -5,11 +5,19 @@ import { ApiError } from "../utils/apiError";
 
 export const errorHandler = (
   err: unknown,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction,
 ) => {
   if (err instanceof ZodError) {
+    console.error("[api-error]", {
+      method: req.method,
+      path: req.originalUrl,
+      status: 400,
+      type: "zod",
+      message: err.issues[0]?.message || "Validation error",
+    });
+
     return res.status(400).json({
       success: false,
       message: err.issues[0]?.message || "Validation error",
@@ -18,6 +26,14 @@ export const errorHandler = (
   }
 
   if (err instanceof ApiError) {
+    console.error("[api-error]", {
+      method: req.method,
+      path: req.originalUrl,
+      status: err.statusCode,
+      type: "api",
+      message: err.message,
+    });
+
     return res.status(err.statusCode).json({
       success: false,
       message: err.message,
@@ -26,6 +42,14 @@ export const errorHandler = (
   }
 
   if (typeof err === "object" && err && "code" in err && err.code === 11000) {
+    console.error("[api-error]", {
+      method: req.method,
+      path: req.originalUrl,
+      status: 409,
+      type: "duplicate",
+      message: "Duplicate record found",
+    });
+
     return res.status(409).json({
       success: false,
       message: "Duplicate record found",
@@ -39,6 +63,14 @@ export const errorHandler = (
     "code" in err &&
     err.code === "LIMIT_FILE_SIZE"
   ) {
+    console.error("[api-error]", {
+      method: req.method,
+      path: req.originalUrl,
+      status: 413,
+      type: "file_size",
+      message: "Image is too large. Please choose a file under 5 MB.",
+    });
+
     return res.status(413).json({
       success: false,
       message: "Image is too large. Please choose a file under 5 MB.",
@@ -46,7 +78,13 @@ export const errorHandler = (
     });
   }
 
-  console.error("Unhandled error:", err);
+  console.error("[api-error]", {
+    method: req.method,
+    path: req.originalUrl,
+    status: 500,
+    type: "unhandled",
+    err,
+  });
 
   return res.status(500).json({
     success: false,

@@ -325,6 +325,18 @@ export const sendOtp = async (phoneInput: string) => {
 
   await resolveUserFromPhone(phone);
 
+  if (!String(env.TWO_FACTOR_API_KEY || "").trim()) {
+    console.error("[auth.sendOtp] missing 2Factor api key", {
+      phone,
+      provider: "2factor",
+    });
+
+    throw new ApiError(
+      503,
+      "OTP service unavailable. Please try again later.",
+    );
+  }
+
   const recentOtp = await OtpModel.findOne({
     phone,
     verifiedAt: null,
@@ -348,10 +360,24 @@ export const sendOtp = async (phoneInput: string) => {
   }
 
   const otp = generateOtpCode();
-  const { providerResponse, providerSessionId } = await sendOtpVia2Factor(
-    phone,
-    otp,
-  );
+  let providerResponse: unknown;
+  let providerSessionId: string | null = null;
+
+  try {
+    const result = await sendOtpVia2Factor(phone, otp);
+    providerResponse = result.providerResponse;
+    providerSessionId = result.providerSessionId;
+  } catch (error) {
+    console.error("[auth.sendOtp] 2Factor request failed", {
+      phone,
+      message: error instanceof Error ? error.message : String(error),
+    });
+
+    throw new ApiError(
+      503,
+      "OTP service unavailable. Please try again later.",
+    );
+  }
 
   const sessionId = providerSessionId || crypto.randomUUID();
   const expiresInSeconds = Number(env.OTP_TTL_SECONDS || 300);
