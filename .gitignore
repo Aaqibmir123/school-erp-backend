@@ -11,3 +11,7 @@ logs
 *.log
 public/receipts/
 uploads/
+public/admit-cards/
+public/marks-cards/
+public/receipts/
+uploads/students/
