@@ -16,22 +16,15 @@ export const sendOtpSchema = z.object({
 
 export const loginSchema = z
   .object({
-    address: z.string().trim().min(5, "Address is required"),
-    email: z.string().trim().email("Enter a valid email"),
-    confirmPassword: z
-      .string()
-      .min(8, "Confirm password must be at least 8 characters"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z.string().min(1, "Password is required"),
     phone: phoneSchema,
-    principalName: z.string().trim().min(3, "Principal name is required"),
-    schoolName: z.string().trim().min(3, "School name is required"),
   })
   .superRefine((value, ctx) => {
-    if (!value.email && !value.phone) {
+    if (!value.phone) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Email or phone is required",
-        path: ["email"],
+        message: "Phone is required",
+        path: ["phone"],
       });
     }
   });
