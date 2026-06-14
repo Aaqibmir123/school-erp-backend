@@ -3,6 +3,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
 
 import { env } from "../config/env";
+import type { UploadedFile } from "../types/upload.types";
 
 let cloudinaryConfigured = false;
 
@@ -37,7 +38,7 @@ const inferResourceType = (mimeType?: string) => {
 };
 
 export const uploadBufferToCloudinary = async (
-  file: Express.Multer.File,
+  file: UploadedFile,
   folder: string,
 ) => {
   if (!file?.buffer?.length) {
